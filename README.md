@@ -1,24 +1,27 @@
 # VRChat Local Video Player
 
-Play a video file from your own PC inside a VRChat video player.
-The app serves the video you pick from your local and publishes it through a
-temporary cloudflare quick tunnel. Works with both linux and windows.
+Play a video file from your own PC inside a VRChat video player. The app serves the video you from your local and publishes it through a
+temporary cloudflare quick tunnel. There's releases for windows and linux.
 
 **Players must have "Allow untrusted URLs" option enabled**
 
+## Download
+
+- **Windows:** [`vrchat-local-video-player.exe`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.0.0/vrchat-local-video-player.exe)
+- **Linux:** [`vrchat-local-video-player-linux`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.0.0/vrchat-local-video-player-linux)
+
 ## How to use
 
-1. Open `vrchat-local-video-player.exe` (windows) or `vrchat-local-video-player-linux` (linux)
-2. Pick a video
-3. Wait a few seconds until the public URL appears in the console (should be already copied to your clipboard)
-4. Put the URL into the world's video player
-5. When the movie is over, close the console (the tunnel dies and the URL stops working)
+1. Pick a video
+2. Wait a few seconds until the public URL appears in the console (should be already copied to your clipboard)
+3. Put the URL into the world's video player
+4. When the movie is over, close the console (tunnel dies and the URL stops working)
 
 ---
 
 ## Smartscreen warning
 
-The binary isn't signed, so if Windows shows "Windows protected your PC", click **More info -> Run anyway**, or 
+The binary isn't signed, so if Windows shows "Windows protected your PC", click **More info and Run anyway**, or 
 right-click the file -> **Properties -> Unblock**.
 
 ---
@@ -32,35 +35,9 @@ right-click the file -> **Properties -> Unblock**.
 
 ---
 
-## Command line options
-
-```
--f, --file <path>     Serve this file (skips the picker)
-    --no-picker       Never open the file picker
-    --no-tunnel       Local only, no public URL (testing)
--p, --port <number>   Local HTTP port (random by default)
--v, --verbose         Debug logs + raw cloudflared output
--q, --quiet           Only the URL and errors
-    --log-file <path> Also write the session log to a file
-    --viewers <n>     Expected viewers, used for the bitrate warning (default 3)
-    --max-upload-mbps <n>  your upload speed in Mbps, used for the warning (default 60)
--h, --help            Show help
-    --version         Show version
-```
-
-Examples:
-
-```powershell
-vrchat-local-video-player.exe --file "D:\Movies\movie.mp4"
-vrchat-local-video-player.exe --file "D:\Movies\movie.mp4" --verbose --log-file run.log
-```
-
----
-
 ## Performance
 
 Every viewer downloads their own copy from your upload, so the required bandwidth is `viewers × video bitrate`.
-
 With a 60 Mbps upload, three viewers are fine at 8–12 Mbps per video (1080p). 4K at high bitrate isn't.
 
 **Use fast start.** If the MP4 index (`moov`) is stored at the end of the file, players have to download the tail before they can 
@@ -84,16 +61,15 @@ File size does not matter: videos are streamed, never loaded into memory.
 
 ## Security
 
-- The local server binds to `127.0.0.1` only — it is not reachable from your LAN
+- The local server binds to `127.0.0.1` only, not reachable from your LAN
 - Only the selected file is served. Every other path returns `404`
-- The URL contains a random 192-bit token, so it cannot be guessed
 - Anyone with the URL can watch the video while the app is running, close the app when you're done
 
 ---
 
 ## Development notes (not necessary)
 
-The repository already contains the two ready-to-use binaries, so you don't need to rebuild, but in case you want:
+The repository already contains both binaries, so you don't need to rebuild, but in case you make changes in the source code:
 
 ```powershell
 npm install
@@ -101,7 +77,7 @@ npm run setup:cloudflared
 npm run build:exe or npm run build:exe:linux
 ```
 
-If you ever want to rebuild the Linux binary (for example, after changing the code), do it in a separate copy you're avoiding breaking windows node_modules:
+If you ever want to rebuild the Linux binary (for example, after changing the code), do it in a separate copy so you're avoiding breaking windows node_modules:
 
 ```bash
 source ~/.nvm/nvm.sh && nvm use 22
