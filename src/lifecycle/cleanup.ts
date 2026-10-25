@@ -13,7 +13,7 @@ export class CleanupManager {
           try {
             await task();
           } catch {
-            // Cleanup must never throw.
+            // cleanup must never throw
           }
         }
       })();

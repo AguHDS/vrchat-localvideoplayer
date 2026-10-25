@@ -82,7 +82,7 @@ export class Logger {
     try {
       appendFileSync(this.logFile, `${line}\n`, 'utf8');
     } catch {
-      // Never let logging break the application.
+      // don't let logging break the application
     }
   }
 
@@ -105,14 +105,14 @@ export class Logger {
     this.write('error', message, process.stderr);
   }
 
-  /** Raw output without any prefix, used for the shareable URL. */
+  /** Raw output without any prefix, used for the shareable URL */
   print(message: string): void {
     if (this.quiet) return;
     process.stdout.write(`${message}\n`);
     this.appendToFile(message);
   }
 
-  /** Always visible, even in quiet mode (used for the URL in quiet mode). */
+  /** Always visible even in quiet mode (used for the URL in quiet mode) */
   printAlways(message: string): void {
     process.stdout.write(`${message}\n`);
     this.appendToFile(message);

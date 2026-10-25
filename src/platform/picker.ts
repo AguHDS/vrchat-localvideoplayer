@@ -7,8 +7,8 @@ import type { Logger } from '../logger';
 const POWERSHELL_SCRIPT = [
   'Add-Type -AssemblyName System.Windows.Forms;',
   '$dialog = New-Object System.Windows.Forms.OpenFileDialog;',
-  "$dialog.Title = 'Seleccionar archivo de video';",
-  "$dialog.Filter = 'Videos|*.mp4;*.webm|Todos los archivos|*.*';",
+  "$dialog.Title = 'Select video file';",
+  "$dialog.Filter = 'Videos|*.mp4;*.webm|All the files|*.*';",
   'if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {',
   '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8;',
   'Write-Output $dialog.FileName }',
@@ -54,9 +54,9 @@ async function selectWithLinux(logger: Logger): Promise<string | null> {
       cmd: 'zenity',
       args: [
         '--file-selection',
-        '--title=Seleccionar archivo de video',
+        '--title=Select video file',
         '--file-filter=Video | *.mp4 *.webm',
-        '--file-filter=Todos los archivos | *',
+        '--file-filter=All the files | *',
       ],
     },
     {
@@ -68,18 +68,18 @@ async function selectWithLinux(logger: Logger): Promise<string | null> {
   for (const candidate of candidates) {
     const result = await runDialog(candidate.cmd, candidate.args);
     if (result.kind === 'not-installed') {
-      logger.debug(`${candidate.cmd} no está instalado.`);
+      logger.debug(`${candidate.cmd} not installed.`);
       continue;
     }
     if (result.kind === 'cancelled') return null;
     if (result.kind === 'error') {
-      logger.warn(`El selector ${candidate.cmd} falló: ${result.message}`);
+      logger.warn(`The selector ${candidate.cmd} failed: ${result.message}`);
       continue;
     }
     if (result.value !== '') return result.value;
   }
 
-  logger.warn('No hay selector gráfico disponible, escribí la ruta del video.');
+  logger.warn('Interactive selector not available; enter the path to the video.');
   return promptForPath(logger);
 }
 
@@ -112,16 +112,16 @@ function runDialog(cmd: string, args: string[]): Promise<DialogResult> {
 
 async function promptForPath(logger: Logger): Promise<string | null> {
   if (!stdin.isTTY) {
-    logger.warn('No hay terminal interactiva y no se indicó --file.');
+    logger.warn('There is no interactive terminal, and none was specified --file.');
     return null;
   }
   const rl = readline.createInterface({ input: stdin, output: stdout });
   try {
-    const answer = await rl.question('Ruta del archivo de video: ');
+    const answer = await rl.question('Path to video file: ');
     const trimmed = answer.trim().replace(/^"|"$/g, '');
     if (trimmed === '') return null;
     if (!existsSync(trimmed)) {
-      logger.warn(`El archivo no existe: ${trimmed}`);
+      logger.warn(`The file does not exist: ${trimmed}`);
       return null;
     }
     return trimmed;

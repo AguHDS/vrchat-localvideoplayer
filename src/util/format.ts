@@ -15,7 +15,7 @@ export function formatBytes(bytes: number): string {
   return `${value.toFixed(digits)} ${UNITS[unitIndex] ?? 'B'}`;
 }
 
-/** Formats seconds as H:MM:SS (or M:SS when shorter than an hour). */
+/** Formats seconds as H:MM:SS (or M:SS when shorter than an hour) */
 export function formatDuration(seconds: number | null): string {
   if (seconds === null || !Number.isFinite(seconds) || seconds <= 0) return 'desconocida';
 

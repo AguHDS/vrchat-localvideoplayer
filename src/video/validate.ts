@@ -16,7 +16,7 @@ export interface ValidatedVideo {
   mimeType: string;
   size: number;
   mtimeMs: number;
-  /** null when it cannot be determined (e.g. webm). */
+  /** null when it cannot be determined */
   fastStart: boolean | null;
 }
 
@@ -28,24 +28,24 @@ export async function validateVideoFile(inputPath: string): Promise<ValidatedVid
     stats = await stat(filePath);
   } catch {
     throw new AppError(
-      `No se encontró el archivo: ${filePath}`,
-      'Revisá la ruta. Podés arrastrar el archivo sobre la consola o usar --file "<ruta>".',
+      `File not found: ${filePath}`,
+      'Check the route again. You can also drag the file over the console or use --file "<ruta>".',
     );
   }
 
   if (!stats.isFile()) {
-    throw new AppError(`La ruta no es un archivo: ${filePath}`);
+    throw new AppError(`The path is not a file: ${filePath}`);
   }
 
   if (stats.size === 0) {
-    throw new AppError(`El archivo está vacío: ${videoFileName(filePath)}`);
+    throw new AppError(`The file is empty: ${videoFileName(filePath)}`);
   }
 
   const extension = path.extname(filePath).toLowerCase();
   if (extension !== '.mp4' && extension !== '.webm') {
     throw new AppError(
-      `Extensión no soportada: "${extension || 'sin extensión'}"`,
-      'VRChat reproduce .mp4 (H.264 + AAC) y .webm (VP8/VP9 + Opus).',
+      `Unsupported extension: "${extension || 'no extension'}"`,
+      'VRChat plays .mp4 (H.264 + AAC) and .webm (VP8/VP9 + Opus).',
     );
   }
 

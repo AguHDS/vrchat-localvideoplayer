@@ -4,11 +4,11 @@ export type RangeResult =
   | { kind: 'unsatisfiable' };
 
 /**
- * Parses a single-range `Range: bytes=...` header.
+ * Parses a single-range "Range: bytes=..." header
  *
- * - `none`         -> no (or unsupported) range, the full body must be sent.
- * - `partial`      -> a satisfiable range, inclusive on both ends.
- * - `unsatisfiable`-> well formed but outside the file, answer with 416.
+ * `none` = no (or unsupported) range, the full body must be sent
+ * `partial` = a satisfiable range, inclusive on both ends
+ * `unsatisfiable`= well formed but outside the file, answer with 416
  */
 export function parseRangeHeader(
   header: string | undefined | null,
@@ -21,8 +21,7 @@ export function parseRangeHeader(
 
   const spec = (match[1] ?? '').trim();
   if (spec === '' || spec.includes(',')) {
-    // Multi ranges are not supported by the players we target; ignoring the
-    // header is allowed by RFC 9110 and keeps them working.
+    // multi ranges are not supported by the players we target. Ignoring the header is allowed by RFC 9110 and keeps them working
     return { kind: 'none' };
   }
 
@@ -34,7 +33,7 @@ export function parseRangeHeader(
   if (rawStart === '' && rawEnd === '') return { kind: 'none' };
 
   if (rawStart === '') {
-    // Suffix range: last N bytes.
+    // suffix range: last N bytes
     const suffix = Number(rawEnd);
     if (!Number.isSafeInteger(suffix) || suffix <= 0) return { kind: 'unsatisfiable' };
     const length = Math.min(suffix, size);

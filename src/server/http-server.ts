@@ -61,7 +61,7 @@ export async function startVideoServer(options: VideoServerOptions): Promise<Vid
       size = stats.size;
       mtimeMs = stats.mtimeMs;
     } catch {
-      logger.warn('No se pudo refrescar la metadata del archivo, se usan los valores de inicio.');
+      logger.warn('The file metadata could not be refreshed, initial values are being used.');
     }
 
     const headers: Record<string, string> = {
@@ -104,7 +104,7 @@ export async function startVideoServer(options: VideoServerOptions): Promise<Vid
       bytesServed += typeof chunk === 'string' ? Buffer.byteLength(chunk) : chunk.length;
     });
     stream.on('error', (error: unknown) => {
-      logger.error(`Error leyendo el video: ${describe(error)}`);
+      logger.error(`Error reading the video: ${describe(error)}`);
       res.destroy();
     });
     res.on('close', () => {

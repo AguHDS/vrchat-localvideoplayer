@@ -12,7 +12,7 @@ export interface Box {
 
 export interface VideoInfo {
   durationSeconds: number | null;
-  /** Average bitrate of the container in megabits per second. */
+  /** average bitrate of the container in megabits per second */
   bitrateMbps: number | null;
   videoCodec: string | null;
   audioCodec: string | null;
@@ -20,14 +20,11 @@ export interface VideoInfo {
 }
 
 /**
- * Inspects the top level MP4 boxes to find out whether the `moov` atom
- * (the index that a player needs to start decoding) is stored before the
- * `mdat` atom (the media payload).
- *
- * `moov` before `mdat` is what "fast start" means and it is what allows a
- * player to start playing and to seek without downloading the whole file.
- *
- * @returns true = fast start, false = not fast start, null = unknown.
+ * Inspects the top level MP4 boxes to find out whether the moov atom (the index that a player needs to start decoding) 
+ * is stored before the mdat atom (the media payload).
+ * moov before mdat is what "fast start" means and it is what allows a player to start playing and to seek without downloading the 
+ * whole file.
+ * @returns true = fast start, false = not fast start, null = unknown
  */
 export async function inspectMp4FastStart(filePath: string): Promise<boolean | null> {
   let handle;
@@ -67,10 +64,9 @@ export async function inspectMp4FastStart(filePath: string): Promise<boolean | n
 }
 
 /**
- * Reads duration and codecs of the selected video.
+ * Reads duration and codecs of the selected video
  *
- * Uses ffprobe when it is available (exact values), otherwise falls back to
- * the MP4 box parser (duration + codec fourcc).
+ * Uses ffprobe when it is available (exact values), otherwise falls back to the MP4 box parser (duration + codec fourcc)
  */
 export async function inspectVideo(
   filePath: string,
@@ -112,7 +108,7 @@ export async function inspectVideo(
   }
 }
 
-/** Uses ffprobe when installed. Returns null when it is not available. */
+/** Uses ffprobe when installed. Returns null when it isn't available */
 export async function probeWithFfprobe(filePath: string): Promise<VideoInfo | null> {
   const args = [
     '-v',
@@ -162,7 +158,7 @@ export async function probeWithFfprobe(filePath: string): Promise<VideoInfo | nu
   }
 }
 
-/** Reads the duration in seconds from the `mvhd` box. */
+/** Reads the duration in seconds from the mvhd box */
 export async function readMp4Duration(
   handle: FileHandle,
   fileSize: number,
@@ -193,7 +189,7 @@ export async function readMp4Duration(
   return duration / timescale;
 }
 
-/** Reads the video and audio codec identifiers from the track headers. */
+/** Reads the video and audio codec identifiers from the track headers */
 export async function readMp4Codecs(
   handle: FileHandle,
   fileSize: number,
@@ -231,8 +227,8 @@ export async function readMp4Codecs(
 }
 
 /**
- * Checks whether a codec identifier is known to work with the VRChat video
- * players. Returns null when the codec could not be determined.
+ * Checks whether a codec identifier is known to work with the VRChat video players. Returns null 
+ * when the codec could not be determined
  */
 export function isVideoCodecSupported(codec: string | null): boolean | null {
   if (codec === null) return null;

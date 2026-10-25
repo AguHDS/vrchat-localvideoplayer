@@ -10,8 +10,8 @@ export function isProcessAlive(pid: number): boolean {
 }
 
 /**
- * Terminates a process and every process it spawned.
- * Windows uses `taskkill /T`, Linux kills the whole process group.
+ * Terminates a process and every process it spawned
+ * Windows uses `taskkill /T`. Linux kills the whole process group
  */
 export async function killProcessTree(pid: number): Promise<void> {
   if (!Number.isSafeInteger(pid) || pid <= 0) return;

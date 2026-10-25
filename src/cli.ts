@@ -21,28 +21,28 @@ async function main(): Promise<number> {
   program
     .name('vrchat-local-video-player')
     .description(
-      'Sirve un video local de tu PC y genera una URL HTTPS pública para reproducirlo en VRChat.',
+      'Serve a local video from your PC and generate a public HTTPS URL to play it in VRChat.',
     )
     .version('1.0.0')
-    .option('-f, --file <path>', 'Ruta del video a servir (omite el selector)')
-    .option('--no-picker', 'No abrir el selector de archivos')
-    .option('--no-tunnel', 'No crear el túnel público (solo para pruebas locales)')
+    .option('-f, --file <path>', 'Path to the video file to serve (skips the file picker)')
+    .option('--no-picker', 'Do not open the file picker')
+    .option('--no-tunnel', 'Do not create a public tunnel (for local testing only)')
     .option(
       '-p, --port <number>',
-      'Puerto local del servidor HTTP',
+      'Local port of the HTTP server',
       (value: string) => Number.parseInt(value, 10),
     )
-    .option('-v, --verbose', 'Mostrar logs detallados')
-    .option('-q, --quiet', 'Mostrar solamente la URL y los errores')
-    .option('--log-file <path>', 'Guardar el log de la sesión en un archivo')
+    .option('-v, --verbose', 'Show detailed logs')
+    .option('-q, --quiet', 'Show only the URL and errors')
+    .option('--log-file <path>', 'Save the session log to a file')
     .option(
       '--viewers <number>',
-      'Cuántos espectadores van a mirar (solo afecta los avisos de bitrate)',
+      'How many viewers will watch (only affects bitrate warnings)',
       (value: string) => Number.parseInt(value, 10),
     )
     .option(
       '--max-upload-mbps <number>',
-      'Tu velocidad de subida en Mbps (solo afecta los avisos de bitrate)',
+      'Your upload speed in Mbps (only affects bitrate warnings)',
       (value: string) => Number.parseInt(value, 10),
     );
 
@@ -110,14 +110,14 @@ main()
     const logger = new Logger({ level: 'info' });
     if (error instanceof AppError) {
       logger.error(error.message);
-      if (error.hint !== undefined) logger.error(`Ayuda: ${error.hint}`);
+      if (error.hint !== undefined) logger.error(`Help: ${error.hint}`);
     } else if (error instanceof Error) {
-      logger.error(`Error inesperado: ${error.message}`);
+      logger.error(`Unexpected error: ${error.message}`);
       if (error.stack !== undefined && process.env['DEBUG'] !== undefined) {
         logger.error(error.stack);
       }
     } else {
-      logger.error(`Error inesperado: ${String(error)}`);
+      logger.error(`Unexpected error: ${String(error)}`);
     }
     process.exitCode = 1;
   });

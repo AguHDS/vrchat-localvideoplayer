@@ -10,8 +10,7 @@ export interface SeaModule {
 let cached: SeaModule | null | undefined;
 
 /**
- * Returns the `node:sea` module when the process runs as a single
- * executable application, otherwise null.
+ * Returns the node:sea module when the process runs as a single executable application, otherwise null
  */
 export function loadSea(): SeaModule | null {
   if (cached !== undefined) return cached;

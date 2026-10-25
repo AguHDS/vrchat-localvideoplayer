@@ -19,15 +19,14 @@ export interface Tunnel {
 }
 
 /**
- * Starts a Cloudflare Quick Tunnel: a temporary public HTTPS URL that
- * forwards to the local http server. No account and no domain required.
+ * Starts a Cloudflare quick tunnel
  */
 export async function startCloudflareQuickTunnel(options: TunnelOptions): Promise<Tunnel> {
   const { logger } = options;
   const timeoutMs = options.timeoutMs ?? 60_000;
   const args = ['tunnel', '--no-autoupdate', '--url', options.localUrl];
 
-  logger.debug(`Ejecutando: ${options.binaryPath} ${args.join(' ')}`);
+  logger.debug(`Executing: ${options.binaryPath} ${args.join(' ')}`);
 
   const child = spawn(options.binaryPath, args, {
     windowsHide: true,
@@ -45,8 +44,8 @@ export async function startCloudflareQuickTunnel(options: TunnelOptions): Promis
       settled = true;
       reject(
         new AppError(
-          'El túnel de Cloudflare no entregó una URL a tiempo.',
-          'Revisá tu conexión a internet. Si usás proxy o firewall, probá con --protocol http2 en forma manual.',
+          'The Cloudflare tunnel did not return a URL in time.',
+          'Check your internet connection. If you are using a proxy or firewall, try with --protocol http2 manually.',
         ),
       );
     }, timeoutMs);
@@ -72,8 +71,8 @@ export async function startCloudflareQuickTunnel(options: TunnelOptions): Promis
       clearTimeout(timer);
       reject(
         new AppError(
-          `No se pudo ejecutar cloudflared: ${error.message}`,
-          'Ejecutá `npm run setup:cloudflared` para descargarlo y verificarlo.',
+          `Couldn't execute cloudflared: ${error.message}`,
+          'Execute `npm run setup:cloudflared` to download and verify it.',
         ),
       );
     });
@@ -84,8 +83,8 @@ export async function startCloudflareQuickTunnel(options: TunnelOptions): Promis
         clearTimeout(timer);
         reject(
           new AppError(
-            `cloudflared terminó antes de crear el túnel (código ${code ?? 'desconocido'}).`,
-            'Revisá tu conexión a internet o el firewall/proxy de tu red.',
+            `cloudflared terminated before creating the tunnel (code ${code ?? 'unknown'}).`,
+            'check your internet connection or the firewall/proxy of your network.',
           ),
         );
         return;

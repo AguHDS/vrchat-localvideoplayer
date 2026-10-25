@@ -1,7 +1,9 @@
 # VRChat Local Video Player
 
-Play a video file from your own PC inside a VRChat video player. The app serves the video you from your local and publishes it through a
-temporary cloudflare quick tunnel. There's releases for windows and linux.
+Play videos from your local PC inside a VRChat video player. The app serves the mp4 from your local and publishes it through a
+temporary cloudflare tunnel. No account or domain required.
+
+Streaming performance depends on your upload speed. The required upload bandwidth increases with the number of viewers and the video's bitrate. Streaming to a few players should work fine, depending on the video's bitrate.
 
 **Players must have "Allow untrusted URLs" option enabled**
 

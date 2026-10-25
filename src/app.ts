@@ -35,9 +35,9 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
   const stop = async (): Promise<void> => {
     if (stopping === null) {
       stopping = (async () => {
-        logger.info('Cerrando servidor y túnel...');
+        logger.info('Closing tunnel and server.');
         await cleanup.runAll();
-        logger.info('Todo cerrado. Chau.');
+        logger.info('All closed.');
       })();
     }
     return stopping;
@@ -51,26 +51,26 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
   if (filePath === undefined || filePath === '') {
     if (!options.usePicker) {
       throw new AppError(
-        'No se indicó ningún archivo de video.',
-        'Usá `--file "C:\\ruta\\video.mp4"` o quitá `--no-picker` para abrir el selector.',
+        'No video file was specified.',
+        'Use `--file "C:\\ruta\\video.mp4"` or remove `--no-picker` to open the file picker.',
       );
     }
-    logger.info('Abriendo el selector de archivos...');
+    logger.info('Opening file picker...');
     const selected = await selectVideoFile(logger);
     if (selected === null) {
-      logger.info('Selección cancelada. No hay nada que servir.');
+      logger.info('Selection cancelled. Nothing to serve.');
       return null;
     }
     filePath = selected;
   }
 
   const video = await validateVideoFile(filePath);
-  logger.info(`Archivo: ${video.fileName} (${formatBytes(video.size)})`);
+  logger.info(`File: ${video.fileName} (${formatBytes(video.size)})`);
 
   if (video.fastStart === false) {
     logger.warn(
-      'El MP4 no tiene "faststart": la reproducción puede arrancar más lento y la búsqueda puede fallar.',
-      'Ver README (sección "Optimizar el video") o usar: ffmpeg -i in.mp4 -c copy -movflags +faststart out.mp4',
+      'The MP4 does not have "faststart": playback may start slower and seeking may fail.',
+      'See README (section "Optimize the video") or use: ffmpeg -i in.mp4 -c copy -movflags +faststart out.mp4',
     );
   }
 
@@ -98,7 +98,7 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
   let publicUrl: string;
 
   if (options.useTunnel) {
-    logger.info('Levantando el túnel de Cloudflare...');
+    logger.info('Starting Cloudflare tunnel...');
     const binary = await resolveCloudflaredBinary(logger);
     cleanup.add(() => binary.cleanup());
 
@@ -107,8 +107,8 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
       binaryPath: binary.path,
       logger,
       onUnexpectedExit: (code) => {
-        logger.error(`El túnel de Cloudflare se cerró inesperadamente (código ${code ?? '?'}).`);
-        logger.error('La URL pública ya no funciona. Volvé a ejecutar la aplicación para obtener una nueva.');
+        logger.error(`The Cloudflare tunnel closed unexpectedly (code ${code ?? '?'}).`);
+        logger.error('The public URL is no longer working. Please restart the application to obtain a new one.');
         void stop();
       },
     });
@@ -120,29 +120,29 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
     }
 
     publicUrl = `${tunnel.baseUrl}${videoPath(token, video.extension)}`;
-    logger.info(`Túnel listo: ${tunnel.baseUrl}`);
+    logger.info(`Tunnel ready: ${tunnel.baseUrl}`);
   } else {
     publicUrl = `${server.url}${videoPath(token, video.extension)}`;
   }
 
   logger.info('');
-  logger.info('URL para VRChat:');
+  logger.info('URL for VRChat:');
   logger.printAlways(publicUrl);
   logger.info('');
 
   if (options.useTunnel) {
-    logger.warn('Todos los participantes deben activar Settings > Allow Untrusted URLs en VRChat.');
-    logger.warn('Funciona en instancias privadas. En instancias públicas el mundo debe permitir el dominio.');
+    logger.warn('All participants must enable Settings > Allow Untrusted URLs in VRChat.');
+    logger.warn('Works in private instances. In public instances, the world must allow the domain.');
   }
 
   const copied = await copyToClipboard(publicUrl);
   if (copied) {
-    logger.info('URL copiada al portapapeles.');
+    logger.info('URL copied to clipboard.');
   } else {
-    logger.debug('No se pudo copiar al portapapeles (no hay herramienta de clipboard disponible).');
+    logger.debug('Could not copy to clipboard (no clipboard tool available).');
   }
 
-  logger.info('Presioná Ctrl+C (o escribí "q" y Enter) para detener todo.');
+  logger.info('Press Ctrl+C (or type "q" and Enter) to stop everything.');
 
   return { publicUrl, stop };
 }
@@ -159,27 +159,27 @@ async function reportVideoQuality(
   const info = await inspectVideo(video.filePath, video.size, video.extension);
 
   if (info === null) {
-    logger.debug('No se pudo estimar la duración ni el bitrate del video.');
+    logger.debug('Could not estimate the duration or bitrate of the video.');
     return;
   }
 
   if (info.durationSeconds !== null) {
     const bitrate =
-      info.bitrateMbps !== null ? ` · Bitrate estimado: ${info.bitrateMbps.toFixed(1)} Mbps` : '';
-    logger.info(`Duración: ${formatDuration(info.durationSeconds)}${bitrate}`);
+      info.bitrateMbps !== null ? ` · Estimed bitrate : ${info.bitrateMbps.toFixed(1)} Mbps` : '';
+    logger.info(`Duration: ${formatDuration(info.durationSeconds)}${bitrate}`);
   }
 
   if (isVideoCodecSupported(info.videoCodec) === false) {
     logger.warn(
-      `El códec de video "${info.videoCodec}" puede no ser soportado por los reproductores de VRChat.`,
-      'Usá H.264 (avc1) + AAC (mp4a) dentro de un contenedor .mp4.',
+      `The video codec "${info.videoCodec}" may not be supported by VRChat players.`,
+      'Use H.264 (avc1) + AAC (mp4a) within an .mp4 container.',
     );
   }
 
   if (isAudioCodecSupported(info.audioCodec) === false) {
     logger.warn(
-      `El códec de audio "${info.audioCodec}" puede no ser soportado.`,
-      'Usá AAC (mp4a) u Opus.',
+      `The audio codec "${info.audioCodec}" may not be supported.`,
+      'Use AAC (mp4a) or Opus.',
     );
   }
 
@@ -190,7 +190,7 @@ async function reportVideoQuality(
 
   if (needed <= options.maxUploadMbps) {
     logger.info(
-      `Subida necesaria: ~${needed.toFixed(0)} Mbps para ${viewers} spectator(s) (tenés ${options.maxUploadMbps} Mbps).`,
+      `Required upload speed: ~${needed.toFixed(0)} Mbps for ${viewers} spectator(s) (you have ${options.maxUploadMbps} Mbps).`,
     );
     return;
   }
@@ -201,8 +201,8 @@ async function reportVideoQuality(
   );
 
   logger.warn(
-    `Con ${viewers} spectator(s) necesitás ~${needed.toFixed(0)} Mbps de subida y tenés ${options.maxUploadMbps} Mbps: el video va a bufferizar.`,
-    `Apuntá a un bitrate de ${recommended} Mbps o menos por espectador.`,
+    `For ${viewers} spectator(s), you need ~${needed.toFixed(0)} Mbps of upload speed and have ${options.maxUploadMbps} Mbps: the video will buffer.`,
+    `Aim for a bitrate of ${recommended} Mbps or less per spectator.`,
   );
   logger.info(
     `  ffmpeg -i "${video.fileName}" -c:v libx264 -preset slow -crf 22 -maxrate ${recommended}M -bufsize ${recommended * 2}M -c:a aac -b:a 128k -movflags +faststart "video-optimizado.mp4"`,

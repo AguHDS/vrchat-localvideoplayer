@@ -3,9 +3,9 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 export type VideoExtension = '.mp4' | '.webm';
 
 export interface VideoSession {
-  /** Random, unguessable path segment. */
+  /** unguessable path segment */
   token: string;
-  /** Absolute path of the selected file. */
+  /** absolute path of the selected file */
   filePath: string;
   fileName: string;
   extension: VideoExtension;
@@ -18,7 +18,7 @@ export function createToken(): string {
   return randomBytes(24).toString('base64url');
 }
 
-/** The single path the server is allowed to answer. */
+/** The single path the server is allowed to answer */
 export function videoPath(token: string, extension: VideoExtension): string {
   return `/v/${token}/video${extension}`;
 }

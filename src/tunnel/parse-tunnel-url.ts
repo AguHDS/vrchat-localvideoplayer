@@ -1,6 +1,6 @@
 const TUNNEL_URL_PATTERN = /https:\/\/[a-z0-9][a-z0-9-]*\.trycloudflare\.com/i;
 
-/** Extracts the public https URL printed by `cloudflared`. */
+/** Extracts the public https URL printed by cloudflared */
 export function parseTunnelUrl(text: string): string | null {
   const match = TUNNEL_URL_PATTERN.exec(text);
   if (!match) return null;

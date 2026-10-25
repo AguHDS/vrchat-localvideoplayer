@@ -14,7 +14,7 @@ export interface CloudflaredBinary {
 /**
  * Root of the installation:
  * - single executable: the folder that contains the .exe
- * - development: the repository root (one level above src/ or dist/)
+ * - development: the repository root (one level above src or dist)
  */
 export function appRoot(): string {
   if (isSingleExecutable()) return path.dirname(process.execPath);
@@ -37,8 +37,8 @@ export async function resolveCloudflaredBinary(logger: Logger): Promise<Cloudfla
     await stat(candidate);
   } catch {
     throw new AppError(
-      'No se encontró el binario de cloudflared.',
-      'Ejecutá `npm run setup:cloudflared` para descargarlo y verificarlo.',
+      'Cloudflared binary not found.',
+      'Run `npm run setup:cloudflared` to download and verify it',
     );
   }
 
@@ -59,8 +59,8 @@ async function extractEmbeddedCloudflared(
     meta = JSON.parse(sea.getAsset('cloudflared-meta.json', 'utf8')) as EmbeddedMeta;
   } catch (error) {
     throw new AppError(
-      `El ejecutable no incluye el binario de cloudflared: ${String(error)}`,
-      'Reconstruí el .exe con `npm run build:exe`.',
+      `The executable does not include the cloudflared binary: ${String(error)}`,
+      'Reconstruct the .exe with `npm run build:exe`.',
     );
   }
 
@@ -73,7 +73,7 @@ async function extractEmbeddedCloudflared(
     await chmod(target, 0o755).catch(() => undefined);
   }
 
-  logger.debug(`cloudflared ${meta.version} extraído en ${target}`);
+  logger.debug(`Cloudflared ${meta.version} extracted to ${target}`);
 
   return {
     path: target,

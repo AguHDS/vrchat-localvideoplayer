@@ -9,7 +9,6 @@ export interface WatchdogOptions {
 
 /**
  * Spawns a detached helper that kills the tunnel if the main process dies
- * (for example when the console window is closed with the X button).
  */
 export function spawnWatchdog(options: WatchdogOptions): void {
   try {
@@ -20,7 +19,7 @@ export function spawnWatchdog(options: WatchdogOptions): void {
     });
     child.unref();
   } catch {
-    // Best effort: the normal shutdown path still works.
+    // effort: the normal shutdown path still works
   }
 }
 
@@ -32,11 +31,10 @@ function watchdogArgs(options: WatchdogOptions): string[] {
 }
 
 /**
- * Watchdog loop: waits until the parent process disappears and then kills
- * the whole process tree of the tunnel.
+ * Watchdog loop: waits until the parent process disappears and then kills the whole process tree of the tunnel
  */
 export async function runWatchdog(parentPid: number, childPid: number): Promise<void> {
-  for (;;) {
+  for (; ;) {
     if (!isProcessAlive(parentPid)) {
       await killProcessTree(childPid);
       return;
