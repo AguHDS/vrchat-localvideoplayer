@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 /**
- * Builds a self contained executable using the official Node.js
- * "single executable application" (SEA) mechanism.
+ * Builds the binary .exe
  *
- * The result embeds the application and the cloudflared binary, so it can
- * run on a machine without Node.js installed.
- *
- * Windows and Linux builds never overwrite each other: the intermediate
- * artifacts are suffixed with the target OS and each one produces its own
- * executable name in the repository root.
+ * The result embeds the application and the cloudflared binary, so it can run on a machine without Node.js installed.
+ * Windows and Linux builds never overwrite each other because the intermediate artifacts are suffixed with the target OS and each one 
+ * produces its own executable name in the repository root.
  */
 import { spawn } from 'node:child_process';
 import { chmod, copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
@@ -41,7 +37,7 @@ function run(command, args, options = {}) {
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`${command} terminó con código ${code ?? '?'}`));
+      else reject(new Error(`${command} finished with code ${code ?? '?'}`));
     });
   });
 }
@@ -56,8 +52,7 @@ async function fileExists(filePath) {
 }
 
 /**
- * Node.js binaries are signed. Injecting the SEA blob invalidates that
- * signature, so it is removed beforehand when signtool is available.
+ * Node.js binaries are signed. Injecting the SEA blob invalidates that signature, so it is removed beforehand when signtool is available.
  */
 async function findSignTool() {
   if (process.platform !== 'win32') return null;
@@ -85,7 +80,7 @@ async function findSignTool() {
 async function removeAuthenticodeSignature(executablePath) {
   const signTool = await findSignTool();
   if (signTool === null) {
-    console.log('   (signtool no encontrado: se deja la firma original, Windows la invalida al inyectar)');
+    console.log('   (signtool not found: the original signature is left in place; Windows invalidates it upon injection');
     return;
   }
 
@@ -101,8 +96,8 @@ async function main() {
 
   if (requested !== process.platform) {
     console.error(
-      `No se puede compilar para "${requested}" desde "${process.platform}".`,
-      'Ejecutá el build en el sistema operativo destino.',
+      `Can't compile for "${requested}" from "${process.platform}".`,
+      'Run the build on the target operating system.',
     );
     process.exitCode = 1;
     return;
@@ -113,14 +108,14 @@ async function main() {
   const vendorFile = path.join(repoRoot, 'vendor', localFileName());
 
   if (!(await fileExists(vendorFile))) {
-    console.log('cloudflared no está descargado, ejecutando el setup...');
+    console.log('cloudflared is not downloaded, running setup...');
     await run(process.execPath, [path.join(scriptDir, 'setup-cloudflared.mjs')]);
   }
 
   const distDir = path.join(repoRoot, 'dist');
   await mkdir(distDir, { recursive: true });
 
-  console.log(`1/4 Compilando TypeScript (${suffix})...`);
+  console.log(`1/4 Compiling ts (${suffix})...`);
   const bundlePath = path.join(distDir, `main.${suffix}.cjs`);
   await build({
     entryPoints: [path.join(repoRoot, 'src', 'cli.ts')],
@@ -133,7 +128,7 @@ async function main() {
     logLevel: 'warning',
   });
 
-  console.log(`2/4 Preparando el blob de la Single Executable Application (${suffix})...`);
+  console.log(`2/4 Preparing the SEA blob (${suffix})...`);
   const metaPath = path.join(distDir, `cloudflared-meta.${suffix}.json`);
   await writeFile(
     metaPath,
@@ -164,11 +159,11 @@ async function main() {
   try {
     await run(process.execPath, ['--experimental-sea-config', seaConfigPath]);
   } catch {
-    // Node >= 25.5 replaced the flag with a dedicated command.
+    // Node >= 25.5 replaced the flag with a dedicated command
     await run(process.execPath, ['--build-sea', seaConfigPath]);
   }
 
-  console.log('3/4 Inyectando el blob en el ejecutable...');
+  console.log('3/4 Injecting the blob in the executable...');
   const outputPath = path.join(repoRoot, executableName());
 
   await copyFile(process.execPath, outputPath);
@@ -180,7 +175,7 @@ async function main() {
     await chmod(outputPath, 0o755);
   }
 
-  console.log('4/4 Verificando el ejecutable...');
+  console.log('4/4 Verifying the executable...');
   const version = await new Promise((resolve, reject) => {
     const child = spawn(outputPath, ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] });
     let output = '';
@@ -190,19 +185,19 @@ async function main() {
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) resolve(output.trim());
-      else reject(new Error(`El ejecutable arrancó con código ${code ?? '?'}`));
+      else reject(new Error(`The executable started with code ${code ?? '?'}`));
     });
   });
 
   const size = (await stat(outputPath)).size;
   console.log('');
-  console.log('Listo.');
-  console.log(`  ejecutable: ${outputPath}`);
-  console.log(`  tamaño:     ${(size / (1024 * 1024)).toFixed(1)} MB`);
-  console.log(`  versión:    ${version}`);
+  console.log('Done.');
+  console.log(`executable: ${outputPath}`);
+  console.log(`size: ${(size / (1024 * 1024)).toFixed(1)} MB`);
+  console.log(`version: ${version}`);
 }
 
 await main().catch((error) => {
-  console.error(`Error durante el build: ${error.message}`);
+  console.error(`Error during the build: ${error.message}`);
   process.exitCode = 1;
 });

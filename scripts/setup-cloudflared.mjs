@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 /**
- * Downloads the official cloudflared binary for the current platform and
- * verifies its SHA-256 checksum before storing it in vendor/.
- *
+ * Downloads the official cloudflared binary for the current platform and verifies its SHA-256 checksum before storing it in vendor/.
  * No account, no API key, no manual configuration.
  *
- * The file name is platform specific (cloudflared.exe / cloudflared) so the
- * Windows and the Linux binaries can live side by side in the same repo.
+ * The file name is platform specific (cloudflared.exe / cloudflared) so the Windows and the Linux binaries can live side by side 
+ * in the same repo
  */
 import { createHash } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
@@ -48,8 +46,8 @@ async function main() {
   const target = CLOUDFLARED_TARGETS[key];
 
   if (!target) {
-    console.error(`Plataforma no soportada: ${key}`);
-    console.error('Plataformas con soporte oficial: win32-x64, win32-ia32, linux-x64, linux-arm64.');
+    console.error(`Platform not supported: ${key}`);
+    console.error('Supported platforms: win32-x64, win32-ia32, linux-x64, linux-arm64.');
     process.exitCode = 1;
     return;
   }
@@ -60,14 +58,14 @@ async function main() {
   if (await fileExists(targetPath)) {
     const current = await sha256(targetPath);
     if (current === target.sha256) {
-      console.log(`cloudflared ${CLOUDFLARED_VERSION} ya está descargado y verificado.`);
+      console.log(`cloudflared ${CLOUDFLARED_VERSION} is already downloaded and verified.`);
       await writeManifest(target);
       return;
     }
-    console.log('El binario existente no coincide con el checksum esperado, se vuelve a descargar...');
+    console.log('The existing binary does not match the expected checksum, redownloading...');
   }
 
-  console.log(`Descargando cloudflared ${CLOUDFLARED_VERSION} (${target.asset})...`);
+  console.log(`Downloading cloudflared ${CLOUDFLARED_VERSION} (${target.asset})...`);
 
   const releaseResponse = await fetch(RELEASE_API, {
     headers: { 'User-Agent': 'vrchat-local-video-player' },
@@ -75,8 +73,8 @@ async function main() {
 
   if (!releaseResponse.ok) {
     console.error(
-      `No se pudo consultar la release oficial (HTTP ${releaseResponse.status}).`,
-      'Verificá tu conexión a internet o intentá más tarde.',
+      `Failed to fetch the official release (HTTP ${releaseResponse.status}).`,
+      'Please check your internet connection or try again later.',
     );
     process.exitCode = 1;
     return;
@@ -86,7 +84,7 @@ async function main() {
   const asset = (release.assets ?? []).find((item) => item.name === target.asset);
 
   if (!asset) {
-    console.error(`La release ${CLOUDFLARED_VERSION} no contiene ${target.asset}.`);
+    console.error(`The release ${CLOUDFLARED_VERSION} does not contain ${target.asset}.`);
     process.exitCode = 1;
     return;
   }
@@ -94,7 +92,7 @@ async function main() {
   const expected = target.sha256 ?? (asset.digest ?? '').replace(/^sha256:/, '');
 
   if (!expected) {
-    console.error('No hay checksum disponible para verificar la descarga.');
+    console.error('No checksum available to verify the download.');
     process.exitCode = 1;
     return;
   }
@@ -118,9 +116,9 @@ async function main() {
 
   if (downloadedHash !== expected) {
     await rm(temporaryPath, { force: true });
-    console.error('El checksum no coincide: la descarga fue descartada.');
-    console.error(`  esperado: ${expected}`);
-    console.error(`  obtenido: ${downloadedHash}`);
+    console.error('The checksum does not match: the download was discarded.');
+    console.error(`expected: ${expected}`);
+    console.error(`obtained: ${downloadedHash}`);
     process.exitCode = 1;
     return;
   }
@@ -132,10 +130,10 @@ async function main() {
     await chmod(targetPath, 0o755);
   }
 
-  console.log('OK: cloudflared descargado y verificado.');
-  console.log(`  archivo:   ${targetPath}`);
-  console.log(`  versión:   ${CLOUDFLARED_VERSION}`);
-  console.log(`  sha256:    ${downloadedHash}`);
+  console.log('OK: cloudflared downloaded and verified.');
+  console.log(`file: ${targetPath}`);
+  console.log(`version: ${CLOUDFLARED_VERSION}`);
+  console.log(`sha256: ${downloadedHash}`);
 
   await writeManifest(target);
 }

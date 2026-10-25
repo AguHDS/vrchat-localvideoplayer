@@ -5,8 +5,5 @@ coverage/
 logs/
 *.log
 
-# The compiled binaries are deliverables and ARE tracked:
-#   vrchat-local-video-player.exe        (Windows)
-#   vrchat-local-video-player-linux      (Linux)
 /vrchat-local-video-player-linux
 /vrchat-local-video-player.exe

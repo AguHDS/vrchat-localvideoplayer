@@ -1,9 +1,8 @@
 /**
- * Shared metadata for the cloudflared binaries.
+ * Shared metadata for the cloudflared binaries
  *
- * The Windows and the Linux builds never share files: the binary is stored
- * with a platform specific name and the intermediate build artifacts are
- * suffixed with the target OS.
+ * The Windows and the Linux builds never share files: the binary is stored with a platform specific name and the intermediate build 
+ * artifacts are suffixed with the target OS.
  */
 export const CLOUDFLARED_VERSION = '2026.10.3';
 
@@ -30,17 +29,17 @@ export function targetKey(platform = process.platform, arch = process.arch) {
   return `${platform}-${arch}`;
 }
 
-/** Local file name used inside vendor/ and inside the extracted temporary file. */
+/** Local file name used inside vendor/ and inside the extracted temporary file */
 export function localFileName(platform = process.platform) {
   return platform === 'win32' ? 'cloudflared.exe' : 'cloudflared';
 }
 
-/** Suffix used for the intermediate build artifacts (dist/). */
+/** Suffix used for the intermediate build artifacts (dist/) */
 export function buildSuffix(platform = process.platform) {
   return platform === 'win32' ? 'win' : 'linux';
 }
 
-/** Name of the final executable for the given platform. */
+/** Name of the final executable for the given platform */
 export function executableName(platform = process.platform) {
   return platform === 'win32' ? 'vrchat-local-video-player.exe' : 'vrchat-local-video-player-linux';
 }
