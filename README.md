@@ -1,11 +1,12 @@
 # VRChat Local Video Player
 
-Play videos from your local PC inside a VRChat video player. The app serves the video from your local and publishes it through a
-temporary cloudflare tunnel. No account or domain required.
+Play videos from your local PC inside a VRChat video player and watch them with other people. The app serves the video from your local and publishes it through a temporary cloudflare tunnel. No account or domain required.
 
 Streaming performance depends on your upload speed. The required upload bandwidth increases with the number of viewers and the video's bitrate. Streaming to a few players works fine, but it may depend on the video's bitrate.
 
-**Players must have "Allow untrusted URLs" option enabled**
+Notes:
+- The video may take a while to load if it's too long
+- Players must have "Allow untrusted URLs" option enabled
 
 ## Download
 
@@ -15,9 +16,10 @@ Streaming performance depends on your upload speed. The required upload bandwidt
 ## How to use
 
 1. Pick a video
-2. Wait a few seconds until the public URL appears in the console (should be already copied to your clipboard)
-3. Put the URL into the world's video player
-4. When the movie is over, close the console (tunnel dies and the URL stops working)
+2. Wait a few seconds until the public URL for vrchat appears in the console (should be already copied to your clipboard)
+3. Put the URL into the correct world's video player input (for most video players, put the URL in: Video Settings > Enter New URL) 
+
+When you're done streaming, close the console. The tunnel dies and the URL stops working.
 
 ---
 
