@@ -1,0 +1,41 @@
+{
+  "name": "vrchat-local-video-player",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serve a local video file over a temporary public HTTPS URL so it can be played in VRChat video players.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "vrchat-local-video-player": "dist/main.cjs"
+  },
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "esbuild src/cli.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/main.cjs",
+    "build:exe": "node scripts/build-exe.mjs",
+    "build:exe:linux": "node scripts/build-exe-linux.mjs",
+    "lint": "eslint .",
+    "setup:cloudflared": "node scripts/setup-cloudflared.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "postject": "^1.0.0-alpha.6",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}
