@@ -1,16 +1,16 @@
 # VRChat Local Video Player
 
-Play videos from your local PC inside a VRChat video player. The app serves the mp4 from your local and publishes it through a
+Play videos from your local PC inside a VRChat video player. The app serves the video from your local and publishes it through a
 temporary cloudflare tunnel. No account or domain required.
 
-Streaming performance depends on your upload speed. The required upload bandwidth increases with the number of viewers and the video's bitrate. Streaming to a few players should work fine, depending on the video's bitrate.
+Streaming performance depends on your upload speed. The required upload bandwidth increases with the number of viewers and the video's bitrate. Streaming to a few players works fine, but it may depend on the video's bitrate.
 
 **Players must have "Allow untrusted URLs" option enabled**
 
 ## Download
 
-- **Windows:** [`vrchat-local-video-player.exe`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.0.0/vrchat-local-video-player.exe)
-- **Linux:** [`vrchat-local-video-player-linux`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.0.0/vrchat-local-video-player-linux)
+- **Windows:** [`vrchat-local-video-player.exe`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.0.1/vrchat-local-video-player.exe)
+- **Linux:** [`vrchat-local-video-player-linux`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.0.1/vrchat-local-video-player-linux)
 
 ## How to use
 
@@ -69,26 +69,3 @@ File size does not matter: videos are streamed, never loaded into memory.
 
 ---
 
-## Development notes (not necessary)
-
-The repository already contains both binaries, so you don't need to rebuild, but in case you make changes in the source code:
-
-```powershell
-npm install
-npm run setup:cloudflared
-npm run build:exe or npm run build:exe:linux
-```
-
-If you ever want to rebuild the Linux binary (for example, after changing the code), do it in a separate copy so you're avoiding breaking windows node_modules:
-
-```bash
-source ~/.nvm/nvm.sh && nvm use 22
-rsync -a --exclude node_modules --exclude dist --exclude vendor --exclude '*.exe' \
-  "/mnt/c/Users/Usuario/Desktop/Ag/Visual Studio Projects/vrchat-localvideoplayer/" \
-  ~/vlvp-linux-build/
-cd ~/vlvp-linux-build
-npm install
-npm run setup:cloudflared
-npm run build:exe:linux
-# copy it again the repo
-cp vrchat-local-video-player-linux "/mnt/c/Users/Usuario/Desktop/Ag/Visual Studio Projects/vrchat-localvideoplayer/"
