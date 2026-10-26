@@ -1,9 +1,8 @@
 # VRChat Local Video Player
 
 Play videos from your local PC inside a VRChat video player and watch them with other people. The app serves videos from your local PC and publishes it through a cloudflare tunnel. 
-When selecting multiple videos, they are processed as a playlist within a single temporary video.
 
-For playlist, you need `ffmpeg` and `ffprobe` in `PATH`. The console will guide you through this if you don't have it.
+When selecting multiple videos, they are processed as a playlist within a single temporary video. For playlist to work, you need to have installed `ffmpeg` and `ffprobe` in `PATH`. The console will guide you through the installation if you don't have it.
 
 **Notes:**
 - The video/playlist may take a while to load the first time if it's too long
