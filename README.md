@@ -11,8 +11,8 @@ For playlist, you need `ffmpeg` and `ffprobe` in `PATH`. The console will guide 
 
 ## Download
 
-- **Windows:** [`vrchat-local-video-player.exe`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.0.1/vrchat-local-video-player.exe)
-- **Linux:** [`vrchat-local-video-player-linux`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.0.1/vrchat-local-video-player-linux)
+- **Windows:** [`vrchat-local-video-player.exe`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.2.0/vrchat-local-video-player.exe)
+- **Linux:** [`vrchat-local-video-player-linux`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.2.0/vrchat-local-video-player-linux)
 
 ## How to use
 
