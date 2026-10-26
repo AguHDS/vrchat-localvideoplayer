@@ -9,6 +9,7 @@ import { isSingleExecutable, loadSea } from './sea';
 export interface CloudflaredBinary {
   path: string;
   version: string;
+  temporaryDirectory?: string | undefined;
   cleanup: () => Promise<void>;
 }
 
@@ -80,6 +81,7 @@ async function extractEmbeddedCloudflared(
   return {
     path: target,
     version: meta.version,
+    temporaryDirectory: directory,
     cleanup: async () => {
       trackedDirectory.cleanupSync();
       await rm(directory, { recursive: true, force: true }).catch(() => undefined);

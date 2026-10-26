@@ -138,7 +138,11 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
       cleanup.add(() => tunnel.stop());
 
       if (tunnel.pid !== undefined) {
-        spawnWatchdog({ parentPid: process.pid, childPid: tunnel.pid });
+        spawnWatchdog({
+          parentPid: process.pid,
+          childPid: tunnel.pid,
+          cleanupPath: binary.temporaryDirectory,
+        });
       }
 
       publicUrl = `${tunnel.baseUrl}${videoPath(token, video.extension)}`;

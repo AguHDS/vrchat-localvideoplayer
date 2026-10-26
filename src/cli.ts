@@ -50,8 +50,9 @@ async function main(): Promise<number> {
   if (watchdogIndex !== -1) {
     const parentPid = Number(process.argv[watchdogIndex + 1]);
     const childPid = Number(process.argv[watchdogIndex + 2]);
+    const cleanupPath = process.argv[watchdogIndex + 3];
     if (Number.isSafeInteger(parentPid) && Number.isSafeInteger(childPid)) {
-      await runWatchdog(parentPid, childPid);
+      await runWatchdog(parentPid, childPid, cleanupPath);
     }
     return 0;
   }
