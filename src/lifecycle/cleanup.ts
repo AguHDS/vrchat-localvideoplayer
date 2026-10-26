@@ -9,7 +9,7 @@ export class CleanupManager {
   runAll(): Promise<void> {
     if (this.running === null) {
       this.running = (async () => {
-        for (const task of this.tasks.reverse()) {
+        for (const task of [...this.tasks].reverse()) {
           try {
             await task();
           } catch {

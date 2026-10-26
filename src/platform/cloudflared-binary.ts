@@ -2,6 +2,7 @@ import { chmod, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { AppError } from '../errors';
+import { registerTemporaryDirectory } from '../lifecycle/temp-files';
 import type { Logger } from '../logger';
 import { isSingleExecutable, loadSea } from './sea';
 
@@ -66,6 +67,7 @@ async function extractEmbeddedCloudflared(
 
   const blob = sea.getAssetAsBlob('cloudflared', { type: 'application/octet-stream' });
   const directory = await mkdtemp(path.join(os.tmpdir(), 'vrchat-local-video-player-'));
+  const trackedDirectory = registerTemporaryDirectory(directory);
   const target = path.join(directory, meta.fileName);
 
   await writeFile(target, Buffer.from(await blob.arrayBuffer()));
@@ -79,6 +81,7 @@ async function extractEmbeddedCloudflared(
     path: target,
     version: meta.version,
     cleanup: async () => {
+      trackedDirectory.cleanupSync();
       await rm(directory, { recursive: true, force: true }).catch(() => undefined);
     },
   };

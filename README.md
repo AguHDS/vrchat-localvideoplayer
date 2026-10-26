@@ -1,12 +1,13 @@
 # VRChat Local Video Player
 
-Play videos from your local PC inside a VRChat video player and watch them with other people. The app serves the video from your local and publishes it through a temporary cloudflare tunnel. No account or domain required.
+Play videos from your local PC inside a VRChat video player and watch them with other people. The app serves videos from your local PC and publishes it through a temporary Cloudflare tunnel. When selecting multiple videos, they are processed as a playlist within a single temporary video.
 
-Streaming performance depends on your upload speed. The required upload bandwidth increases with the number of viewers and the video's bitrate. Streaming to a few players works fine, but it may depend on the video's bitrate.
+For playlist, you need `ffmpeg` and `ffprobe` in `PATH`. The console will guide you through this if you don't have it.
 
-Notes:
-- The video may take a while to load if it's too long
+**Notes:**
+- The video/playlist may take a while to load the first time if it's too long
 - Players must have "Allow untrusted URLs" option enabled
+- No cloudflare account or domain is required
 
 ## Download
 
@@ -15,9 +16,9 @@ Notes:
 
 ## How to use
 
-1. Pick a video
-2. Wait a few seconds until the public URL for vrchat appears in the console (should be already copied to your clipboard)
-3. Put the URL into the correct world's video player input (for most video players, put the URL in: Video Settings > Enter New URL) 
+1. Pick a video, or select several videos to play them consecutively as one playlist (For a playlist, wait while FFmpeg prepares one combined MP4)
+2. Wait a few seconds until the public URL for VRChat appears in the console (normally it will be copied to your clipboard)
+3. Put the URL into the world's video player input (usually Video Settings > Enter New URL)
 
 When you're done streaming, close the console. The tunnel dies and the URL stops working.
 
@@ -34,12 +35,13 @@ right-click the file -> **Properties -> Unblock**.
 
 - Private instances only (public instances need the world owner to allow the domain)
 - Quick Tunnels have no uptime guarantee; Cloudflare documents them for testing and development, so a session can be interrupted
-- One file at a time
-- Quest requires HTTPS (satisfied) and Allow Untrusted URLs enabled on the Android client
+- Playlists require FFmpeg and temporarily use disk space while preparing the combined MP4 (releases used space once the app is closed)
 
 ---
 
 ## Performance
+
+Streaming performance depends on your upload speed. The required upload bandwidth increases with the number of viewers and the video's bitrate. Streaming to a few players works fine, but it may depend on the video's bitrate.
 
 Every viewer downloads their own copy from your upload, so the required bandwidth is `viewers × video bitrate`.
 With a 60 Mbps upload, three viewers are fine at 8–12 Mbps per video (1080p). 4K at high bitrate isn't.
@@ -61,13 +63,26 @@ ffmpeg -i input.mp4 -c:v libx264 -preset slow -crf 22 -maxrate 10M -bufsize 20M 
 
 File size does not matter: videos are streamed, never loaded into memory.
 
+**Playlists** are normalized to one seekable MP4 using H.264 video, AAC stereo audio, 30 FPS and faststart. The temporary file is deleted when the application exits. Mixed MP4/WebM files, resolutions and videos without audio are supported.
+
+Install FFmpeg on Windows with:
+
+```powershell
+winget install --id Gyan.FFmpeg --exact
+```
+
+Install FFmpeg in Ubuntu/WSL2 with:
+
+```bash
+sudo apt update && sudo apt install -y ffmpeg
+```
+
+Restart the terminal after installing it so the new `PATH` is loaded.
+
 ---
 
 ## Security
 
 - The local server binds to `127.0.0.1` only, not reachable from your LAN
-- Only the selected file is served. Every other path returns `404`
+- Only the selected file or prepared playlist is served. Every other path returns `404`
 - Anyone with the URL can watch the video while the app is running, close the app when you're done
-
----
-

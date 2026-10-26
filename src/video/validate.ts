@@ -20,6 +20,30 @@ export interface ValidatedVideo {
   fastStart: boolean | null;
 }
 
+export async function validateVideoFiles(inputPaths: string[]): Promise<ValidatedVideo[]> {
+  if (inputPaths.length === 0) {
+    throw new AppError('No video files were specified.');
+  }
+
+  const videos: ValidatedVideo[] = [];
+  for (let index = 0; index < inputPaths.length; index += 1) {
+    const inputPath = inputPaths[index];
+    if (inputPath === undefined) continue;
+    try {
+      videos.push(await validateVideoFile(inputPath));
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw new AppError(
+          `Video ${index + 1} of ${inputPaths.length} is invalid (${inputPath}): ${error.message}`,
+          error.hint,
+        );
+      }
+      throw error;
+    }
+  }
+  return videos;
+}
+
 export async function validateVideoFile(inputPath: string): Promise<ValidatedVideo> {
   const filePath = path.resolve(inputPath);
 

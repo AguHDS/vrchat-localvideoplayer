@@ -1,25 +1,28 @@
 import { AppError } from './errors';
 import { CleanupManager } from './lifecycle/cleanup';
+import { cleanupStaleTemporaryDirectories } from './lifecycle/temp-files';
 import { spawnWatchdog } from './lifecycle/watchdog';
 import type { Logger } from './logger';
 import { copyToClipboard } from './platform/clipboard';
 import { resolveCloudflaredBinary } from './platform/cloudflared-binary';
-import { selectVideoFile } from './platform/picker';
+import { selectVideoFiles } from './platform/picker';
 import { startVideoServer } from './server/http-server';
 import { createToken, videoPath, type VideoSession } from './server/session';
 import { startCloudflareQuickTunnel } from './tunnel/cloudflare-quick';
 import { formatBytes, formatDuration } from './util/format';
+import { preparePlaylistVideo } from './video/playlist';
 import { inspectVideo, isAudioCodecSupported, isVideoCodecSupported } from './video/probe';
-import { validateVideoFile, type ValidatedVideo } from './video/validate';
+import { validateVideoFiles, type ValidatedVideo } from './video/validate';
 
 export interface AppOptions {
-  file?: string | undefined;
+  files: string[];
   usePicker: boolean;
   useTunnel: boolean;
   port?: number | undefined;
   viewers: number;
   maxUploadMbps: number;
   logger: Logger;
+  signal?: AbortSignal | undefined;
 }
 
 export interface RunningApp {
@@ -43,118 +46,138 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
     return stopping;
   };
 
-  logger.info('VRChat Local Video Player');
-  logger.info('');
+  try {
+    const staleDirectories = cleanupStaleTemporaryDirectories();
+    if (staleDirectories > 0) {
+      logger.info(`Removed ${staleDirectories} stale temporary director${staleDirectories === 1 ? 'y' : 'ies'}.`);
+    }
+    logger.info('VRChat Local Video Player');
+    logger.info('');
 
-  let filePath = options.file;
+    let selectedPaths = options.files;
+    if (selectedPaths.length === 0) {
+      if (!options.usePicker) {
+        throw new AppError(
+          'No video file was specified.',
+          'Use `--file "C:\\ruta\\video.mp4"` or remove `--no-picker` to open the file picker.',
+        );
+      }
+      logger.info('Opening file picker...');
+      const selected = await selectVideoFiles(logger);
+      if (selected === null) {
+        logger.info('Selection cancelled. Nothing to serve.');
+        return null;
+      }
+      selectedPaths = selected;
+    }
 
-  if (filePath === undefined || filePath === '') {
-    if (!options.usePicker) {
-      throw new AppError(
-        'No video file was specified.',
-        'Use `--file "C:\\ruta\\video.mp4"` or remove `--no-picker` to open the file picker.',
+    const videos = await validateVideoFiles(selectedPaths);
+    for (const sourceVideo of videos) {
+      logger.info(`File: ${sourceVideo.fileName} (${formatBytes(sourceVideo.size)})`);
+      await reportVideoQuality(sourceVideo, options, logger, false);
+    }
+
+    let video = videos[0];
+    if (video === undefined) {
+      throw new AppError('No video file was selected.');
+    }
+
+    if (videos.length > 1) {
+      const prepared = await preparePlaylistVideo(videos, {
+        logger,
+        signal: options.signal,
+      });
+      cleanup.add(prepared.cleanup);
+      video = prepared.video;
+    } else if (video.fastStart === false) {
+      logger.warn(
+        'The MP4 does not have "faststart": playback may start slower and seeking may fail.',
+        'Use: ffmpeg -i in.mp4 -c copy -movflags +faststart out.mp4',
       );
     }
-    logger.info('Opening file picker...');
-    const selected = await selectVideoFile(logger);
-    if (selected === null) {
-      logger.info('Selection cancelled. Nothing to serve.');
-      return null;
-    }
-    filePath = selected;
-  }
 
-  const video = await validateVideoFile(filePath);
-  logger.info(`File: ${video.fileName} (${formatBytes(video.size)})`);
+    await reportVideoQuality(video, options, logger, true);
 
-  if (video.fastStart === false) {
-    logger.warn(
-      'The MP4 does not have "faststart": playback may start slower and seeking may fail.',
-      'See README (section "Optimize the video") or use: ffmpeg -i in.mp4 -c copy -movflags +faststart out.mp4',
-    );
-  }
+    const token = createToken();
+    const session: VideoSession = {
+      token,
+      filePath: video.filePath,
+      fileName: video.fileName,
+      extension: video.extension,
+      mimeType: video.mimeType,
+      size: video.size,
+      mtimeMs: video.mtimeMs,
+    };
 
-  await reportVideoQuality(video, options, logger);
-
-  const token = createToken();
-  const session: VideoSession = {
-    token,
-    filePath: video.filePath,
-    fileName: video.fileName,
-    extension: video.extension,
-    mimeType: video.mimeType,
-    size: video.size,
-    mtimeMs: video.mtimeMs,
-  };
-
-  const server = await startVideoServer({
-    session,
-    logger,
-    port: options.port,
-  });
-  cleanup.add(() => server.close());
-  logger.info(`Servidor local: ${server.url}${videoPath(token, video.extension)}`);
-
-  let publicUrl: string;
-
-  if (options.useTunnel) {
-    logger.info('Starting Cloudflare tunnel...');
-    const binary = await resolveCloudflaredBinary(logger);
-    cleanup.add(() => binary.cleanup());
-
-    const tunnel = await startCloudflareQuickTunnel({
-      localUrl: server.url,
-      binaryPath: binary.path,
+    const server = await startVideoServer({
+      session,
       logger,
-      onUnexpectedExit: (code) => {
-        logger.error(`The Cloudflare tunnel closed unexpectedly (code ${code ?? '?'}).`);
-        logger.error('The public URL is no longer working. Please restart the application to obtain a new one.');
-        void stop();
-      },
+      port: options.port,
     });
+    cleanup.add(() => server.close());
+    logger.info(`Servidor local: ${server.url}${videoPath(token, video.extension)}`);
 
-    cleanup.add(() => tunnel.stop());
+    let publicUrl: string;
 
-    if (tunnel.pid !== undefined) {
-      spawnWatchdog({ parentPid: process.pid, childPid: tunnel.pid });
+    if (options.useTunnel) {
+      logger.info('Starting Cloudflare tunnel...');
+      const binary = await resolveCloudflaredBinary(logger);
+      cleanup.add(() => binary.cleanup());
+
+      const tunnel = await startCloudflareQuickTunnel({
+        localUrl: server.url,
+        binaryPath: binary.path,
+        logger,
+        onUnexpectedExit: (code) => {
+          logger.error(`The Cloudflare tunnel closed unexpectedly (code ${code ?? '?'}).`);
+          logger.error('The public URL is no longer working. Please restart the application to obtain a new one.');
+          void stop();
+        },
+      });
+
+      cleanup.add(() => tunnel.stop());
+
+      if (tunnel.pid !== undefined) {
+        spawnWatchdog({ parentPid: process.pid, childPid: tunnel.pid });
+      }
+
+      publicUrl = `${tunnel.baseUrl}${videoPath(token, video.extension)}`;
+      logger.info(`Tunnel ready: ${tunnel.baseUrl}`);
+    } else {
+      publicUrl = `${server.url}${videoPath(token, video.extension)}`;
     }
 
-    publicUrl = `${tunnel.baseUrl}${videoPath(token, video.extension)}`;
-    logger.info(`Tunnel ready: ${tunnel.baseUrl}`);
-  } else {
-    publicUrl = `${server.url}${videoPath(token, video.extension)}`;
+    logger.info('');
+    logger.info('URL for VRChat:');
+    logger.printAlways(publicUrl);
+    logger.info('');
+
+    if (options.useTunnel) {
+      logger.warn('All participants must enable Settings > Allow Untrusted URLs in VRChat.');
+      logger.warn('Works in private instances. In public instances, the world must allow the domain.');
+    }
+
+    const copied = await copyToClipboard(publicUrl);
+    if (copied) {
+      logger.info('URL copied to clipboard.');
+    } else {
+      logger.debug('Could not copy to clipboard (no clipboard tool available).');
+    }
+
+    logger.info('Press Ctrl+C (or type "q" and Enter) to stop everything.');
+
+    return { publicUrl, stop };
+  } catch (error) {
+    await cleanup.runAll();
+    throw error;
   }
-
-  logger.info('');
-  logger.info('URL for VRChat:');
-  logger.printAlways(publicUrl);
-  logger.info('');
-
-  if (options.useTunnel) {
-    logger.warn('All participants must enable Settings > Allow Untrusted URLs in VRChat.');
-    logger.warn('Works in private instances. In public instances, the world must allow the domain.');
-  }
-
-  const copied = await copyToClipboard(publicUrl);
-  if (copied) {
-    logger.info('URL copied to clipboard.');
-  } else {
-    logger.debug('Could not copy to clipboard (no clipboard tool available).');
-  }
-
-  logger.info('Press Ctrl+C (or type "q" and Enter) to stop everything.');
-
-  return { publicUrl, stop };
 }
 
-/**
- * Prints the duration and the estimated bitrate of the selected video and
- * warns when the upload bandwidth is not enough for the expected viewers.
- */
 async function reportVideoQuality(
   video: ValidatedVideo,
   options: AppOptions,
   logger: Logger,
+  reportBandwidth: boolean,
 ): Promise<void> {
   const info = await inspectVideo(video.filePath, video.size, video.extension);
 
@@ -165,7 +188,7 @@ async function reportVideoQuality(
 
   if (info.durationSeconds !== null) {
     const bitrate =
-      info.bitrateMbps !== null ? ` · Estimed bitrate : ${info.bitrateMbps.toFixed(1)} Mbps` : '';
+      info.bitrateMbps !== null ? ` · Estimated bitrate: ${info.bitrateMbps.toFixed(1)} Mbps` : '';
     logger.info(`Duration: ${formatDuration(info.durationSeconds)}${bitrate}`);
   }
 
@@ -183,7 +206,7 @@ async function reportVideoQuality(
     );
   }
 
-  if (info.bitrateMbps === null) return;
+  if (!reportBandwidth || info.bitrateMbps === null) return;
 
   const viewers = Math.max(1, options.viewers);
   const needed = info.bitrateMbps * viewers;
@@ -203,8 +226,5 @@ async function reportVideoQuality(
   logger.warn(
     `For ${viewers} spectator(s), you need ~${needed.toFixed(0)} Mbps of upload speed and have ${options.maxUploadMbps} Mbps: the video will buffer.`,
     `Aim for a bitrate of ${recommended} Mbps or less per spectator.`,
-  );
-  logger.info(
-    `  ffmpeg -i "${video.fileName}" -c:v libx264 -preset slow -crf 22 -maxrate ${recommended}M -bufsize ${recommended * 2}M -c:a aac -b:a 128k -movflags +faststart "video-optimizado.mp4"`,
   );
 }

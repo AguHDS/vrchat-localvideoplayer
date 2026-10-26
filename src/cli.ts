@@ -6,25 +6,23 @@ import { Logger, type LogLevel } from './logger';
 
 const WATCHDOG_FLAG = '--internal-watchdog';
 
-async function main(): Promise<number> {
-  const watchdogIndex = process.argv.indexOf(WATCHDOG_FLAG);
-  if (watchdogIndex !== -1) {
-    const parentPid = Number(process.argv[watchdogIndex + 1]);
-    const childPid = Number(process.argv[watchdogIndex + 2]);
-    if (Number.isSafeInteger(parentPid) && Number.isSafeInteger(childPid)) {
-      await runWatchdog(parentPid, childPid);
-    }
-    return 0;
-  }
+function collectFile(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
 
-  const program = new Command();
-  program
+export function createProgram(): Command {
+  return new Command()
     .name('vrchat-local-video-player')
     .description(
-      'Serve a local video from your PC and generate a public HTTPS URL to play it in VRChat.',
+      'Serve local videos from your PC and generate a public HTTPS URL to play them in VRChat.',
     )
     .version('1.0.0')
-    .option('-f, --file <path>', 'Path to the video file to serve (skips the file picker)')
+    .option(
+      '-f, --file <path>',
+      'Path to a video file; repeat the option to create a playlist',
+      collectFile,
+      [],
+    )
     .option('--no-picker', 'Do not open the file picker')
     .option('--no-tunnel', 'Do not create a public tunnel (for local testing only)')
     .option(
@@ -45,7 +43,20 @@ async function main(): Promise<number> {
       'Your upload speed in Mbps (only affects bitrate warnings)',
       (value: string) => Number.parseInt(value, 10),
     );
+}
 
+async function main(): Promise<number> {
+  const watchdogIndex = process.argv.indexOf(WATCHDOG_FLAG);
+  if (watchdogIndex !== -1) {
+    const parentPid = Number(process.argv[watchdogIndex + 1]);
+    const childPid = Number(process.argv[watchdogIndex + 2]);
+    if (Number.isSafeInteger(parentPid) && Number.isSafeInteger(childPid)) {
+      await runWatchdog(parentPid, childPid);
+    }
+    return 0;
+  }
+
+  const program = createProgram();
   program.parse(process.argv);
   const options = program.opts();
 
@@ -56,46 +67,75 @@ async function main(): Promise<number> {
     logFile: typeof options.logFile === 'string' ? options.logFile : undefined,
   });
 
-  const app = await startApp({
-    file: typeof options.file === 'string' ? options.file : undefined,
-    usePicker: options.picker !== false,
-    useTunnel: options.tunnel !== false,
-    port: typeof options.port === 'number' ? options.port : undefined,
-    viewers: typeof options.viewers === 'number' ? options.viewers : 3,
-    maxUploadMbps: typeof options.maxUploadMbps === 'number' ? options.maxUploadMbps : 60,
-    logger,
+  const files = Array.isArray(options.file)
+    ? options.file.filter((value): value is string => typeof value === 'string')
+    : typeof options.file === 'string'
+      ? [options.file]
+      : [];
+  const abortController = new AbortController();
+  let app: RunningApp | null = null;
+  let stopRequested = false;
+  let resolveStop = (): void => undefined;
+  const stopped = new Promise<void>((resolve) => {
+    resolveStop = resolve;
   });
 
-  if (app === null) return 0;
+  const requestStop = (): void => {
+    if (stopRequested) return;
+    stopRequested = true;
+    abortController.abort();
+    if (app === null) {
+      resolveStop();
+    } else {
+      void app.stop().finally(resolveStop);
+    }
+  };
 
-  await waitForStop(app);
-  return 0;
-}
+  const onData = (chunk: Buffer | string): void => {
+    const text = String(chunk).trim().toLowerCase();
+    if (text === 'q' || text === 'exit' || text === 'salir') requestStop();
+  };
 
-function waitForStop(app: RunningApp): Promise<void> {
-  return new Promise<void>((resolve) => {
-    let finished = false;
+  process.on('SIGINT', requestStop);
+  process.on('SIGTERM', requestStop);
+  process.on('SIGHUP', requestStop);
+  if (process.platform === 'win32') process.on('SIGBREAK', requestStop);
+  process.stdin.on('data', onData);
+  process.stdin.resume();
 
-    const finish = (): void => {
-      if (finished) return;
-      finished = true;
-      process.off('SIGINT', finish);
-      process.off('SIGTERM', finish);
-      process.stdin.off('data', onData);
-      process.stdin.pause();
-      void app.stop().finally(() => resolve());
-    };
+  try {
+    try {
+      app = await startApp({
+        files,
+        usePicker: options.picker !== false,
+        useTunnel: options.tunnel !== false,
+        port: typeof options.port === 'number' ? options.port : undefined,
+        viewers: typeof options.viewers === 'number' ? options.viewers : 3,
+        maxUploadMbps:
+          typeof options.maxUploadMbps === 'number' ? options.maxUploadMbps : 60,
+        logger,
+        signal: abortController.signal,
+      });
+    } catch (error) {
+      if (stopRequested) return 0;
+      throw error;
+    }
 
-    const onData = (chunk: Buffer | string): void => {
-      const text = String(chunk).trim().toLowerCase();
-      if (text === 'q' || text === 'exit' || text === 'salir') finish();
-    };
-
-    process.on('SIGINT', finish);
-    process.on('SIGTERM', finish);
-    process.stdin.on('data', onData);
-    process.stdin.resume();
-  });
+    if (app === null) return 0;
+    if (stopRequested) {
+      await app.stop();
+    } else {
+      await stopped;
+    }
+    return 0;
+  } finally {
+    process.off('SIGINT', requestStop);
+    process.off('SIGTERM', requestStop);
+    process.off('SIGHUP', requestStop);
+    if (process.platform === 'win32') process.off('SIGBREAK', requestStop);
+    process.stdin.off('data', onData);
+    process.stdin.pause();
+  }
 }
 
 main()
@@ -110,7 +150,11 @@ main()
     const logger = new Logger({ level: 'info' });
     if (error instanceof AppError) {
       logger.error(error.message);
-      if (error.hint !== undefined) logger.error(`Help: ${error.hint}`);
+      if (error.hint !== undefined) {
+        const [firstLine, ...remainingLines] = error.hint.split('\n');
+        logger.error(`Help: ${firstLine ?? ''}`);
+        for (const line of remainingLines) logger.error(line);
+      }
     } else if (error instanceof Error) {
       logger.error(`Unexpected error: ${error.message}`);
       if (error.stack !== undefined && process.env['DEBUG'] !== undefined) {
