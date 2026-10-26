@@ -19,7 +19,7 @@ export function createProgram(): Command {
     .version('1.0.0')
     .option(
       '-f, --file <path>',
-      'Path to a video file; repeat the option to create a playlist',
+      'Path to a video file. Repeat the option to create a playlist',
       collectFile,
       [],
     )

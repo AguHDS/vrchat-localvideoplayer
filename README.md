@@ -34,7 +34,7 @@ right-click the file -> **Properties -> Unblock**.
 ## Limitations
 
 - Private instances only (public instances need the world owner to allow the domain)
-- Quick Tunnels have no uptime guarantee; Cloudflare documents them for testing and development, so a session can be interrupted
+- Quick Tunnels have no uptime guarantee, cloudflare documents them for testing and development, so a session can be interrupted
 - Playlists require FFmpeg and temporarily use disk space while preparing the combined MP4 (releases used space once the app is closed)
 
 ---
