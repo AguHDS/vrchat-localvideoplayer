@@ -52,13 +52,13 @@ File size does not matter. Videos are streamed.
 
 ## Security
 
-- The local server binds to `127.0.0.1` only, not reachable from your LAN
+- The local server binds to `127.0.0.1` only, so it's not reachable from your LAN
 - Only the selected file or prepared playlist is served. Every other path returns `404`
 - Anyone with the URL can watch the video while the app is running, close the app when you're done
 
 ---
 
-# Troubleshooting & docs
+## Troubleshooting & docs
 
 - Ffmpeg installation (required for playlist): [FFmpeg Installation Guide](.docs/ffmpeg.md)
 - Temporary files: [Temporary Files Guide](.docs/Temp-data.md)
