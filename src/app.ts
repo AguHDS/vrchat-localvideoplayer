@@ -51,7 +51,7 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
     if (staleDirectories > 0) {
       logger.info(`Removed ${staleDirectories} stale temporary director${staleDirectories === 1 ? 'y' : 'ies'}.`);
     }
-    logger.info('VRChat Local Video Player');
+    logger.printAlways('VRChat Local Video Player');
 
     let selectedPaths = options.files;
     if (selectedPaths.length === 0) {
@@ -61,7 +61,7 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
           'Use `--file "C:\\ruta\\video.mp4"` or remove `--no-picker` to open the file picker.',
         );
       }
-      logger.info('Opening file picker...');
+      logger.printAlways('Opening file picker...');
       const selected = await selectVideoFiles(logger);
       if (selected === null) {
         logger.info('Selection cancelled. Nothing to serve.');
@@ -152,19 +152,29 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
       publicUrl = `${server.url}${videoPath(token, video.extension)}`;
     }
 
-    logger.info('');
-    logger.info('URL for VRChat:');
-    logger.printAlways(publicUrl);
-    logger.info('');
+    const cyan = '\x1b[36m';
+    const yellow = '\x1b[33m';
+    const green = '\x1b[32m';
+    const bold = '\x1b[1m';
+    const reset = '\x1b[0m';
+
+    logger.printAlways('');
+    logger.printAlways(`${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}`);
+    logger.printAlways('');
+    logger.printAlways(`${cyan}${bold}URL FOR VRCHAT READY:${reset}`);
+    logger.printAlways(`${yellow}${bold}${publicUrl}${reset}`);
+    logger.printAlways('');
+    logger.printAlways(`${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}`);
+    logger.printAlways('');
 
     const copied = await copyToClipboard(publicUrl);
     if (copied) {
-      logger.info('URL copied to clipboard');
+      logger.printAlways(`${green}URL copied to clipboard${reset}`);
     } else {
       logger.debug('Could not copy to clipboard (no clipboard tool available)');
     }
 
-    logger.info('Press Ctrl+C (or type "q" and Enter) to stop everything');
+    logger.printAlways('Press Ctrl+C (or type "q" and Enter) to stop everything');
 
     return { publicUrl, stop };
   } catch (error) {
