@@ -60,7 +60,7 @@ File size does not matter. Videos are streamed.
 
 # Troubleshooting & docs
 
-Ffmpeg installation (required for playlist): [FFmpeg Installation Guide](.docs/ffmpeg.md)
-Temporary files: [Temporary Files Guide](.docs/Temp-data.md)
-Rebuild binary files: [Binary Files Guide](.docs/Binary-files.md)
-DNS issues: [DNS Troubleshooting Guide](.docs/DNS-troubleshooting.md)
+- Ffmpeg installation (required for playlist): [FFmpeg Installation Guide](.docs/ffmpeg.md)
+- Temporary files: [Temporary Files Guide](.docs/Temp-data.md)
+- Rebuild binary files: [Binary Files Guide](.docs/Binary-files.md)
+- DNS issues: [DNS Troubleshooting Guide](.docs/DNS-troubleshooting.md)
