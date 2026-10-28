@@ -10,7 +10,9 @@ export function parseTunnelUrl(text: string): string | null {
 export function isValidTunnelUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'https:' && parsed.hostname.endsWith('.trycloudflare.com');
+    if (parsed.protocol !== 'https:') return false;
+    if (!parsed.hostname.endsWith('.trycloudflare.com')) return false;
+    return !parsed.hostname.startsWith('api.');
   } catch {
     return false;
   }

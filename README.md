@@ -46,38 +46,7 @@ Streaming performance depends on your upload speed. The required upload bandwidt
 Every viewer downloads their own copy from your upload, so the required bandwidth is `viewers × video bitrate`.
 With a 60 Mbps upload, three viewers are fine at 8–12 Mbps per video (1080p). 4K at high bitrate isn't.
 
-**Use fast start.** If the MP4 index (`moov`) is stored at the end of the file, players have to download the tail before they can 
-start or seek. The app detects this and warns you. Fix it without re-encoding, do this:
-
-```bash
-ffmpeg -i input.mp4 -c copy -movflags +faststart output.mp4
-```
-
-**If you need to lower the bitrate**, re-encode with a cap (the app prints a ready to
-paste command with the right numbers for your upload speed and viewer count):
-
-```bash
-ffmpeg -i input.mp4 -c:v libx264 -preset slow -crf 22 -maxrate 10M -bufsize 20M \
-  -c:a aac -b:a 128k -movflags +faststart output.mp4
-```
-
-File size does not matter: videos are streamed, never loaded into memory.
-
-**Playlists** are normalized to one seekable MP4 using H.264 video, AAC stereo audio, 30 FPS and faststart. The temporary file is deleted when the application exits. Mixed MP4/WebM files, resolutions and videos without audio are supported.
-
-Install FFmpeg on Windows with:
-
-```powershell
-winget install --id Gyan.FFmpeg --exact
-```
-
-Install FFmpeg in Ubuntu/WSL2 with:
-
-```bash
-sudo apt update && sudo apt install -y ffmpeg
-```
-
-Restart the terminal after installing it so the new `PATH` is loaded.
+File size does not matter. Videos are streamed.
 
 ---
 
@@ -86,3 +55,12 @@ Restart the terminal after installing it so the new `PATH` is loaded.
 - The local server binds to `127.0.0.1` only, not reachable from your LAN
 - Only the selected file or prepared playlist is served. Every other path returns `404`
 - Anyone with the URL can watch the video while the app is running, close the app when you're done
+
+---
+
+# Troubleshooting & docs
+
+Ffmpeg installation (required for playlist): [FFmpeg Installation Guide](.docs/ffmpeg.md)
+Temporary files: [Temporary Files Guide](.docs/Temp-data.md)
+Rebuild binary files: [Binary Files Guide](.docs/Binary-files.md)
+DNS issues: [DNS Troubleshooting Guide](.docs/DNS-troubleshooting.md)

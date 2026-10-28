@@ -52,7 +52,6 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
       logger.info(`Removed ${staleDirectories} stale temporary director${staleDirectories === 1 ? 'y' : 'ies'}.`);
     }
     logger.info('VRChat Local Video Player');
-    logger.info('');
 
     let selectedPaths = options.files;
     if (selectedPaths.length === 0) {
@@ -74,7 +73,9 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
     const videos = await validateVideoFiles(selectedPaths);
     for (const sourceVideo of videos) {
       logger.info(`File: ${sourceVideo.fileName} (${formatBytes(sourceVideo.size)})`);
-      await reportVideoQuality(sourceVideo, options, logger, false);
+      if (videos.length > 1) {
+        await reportVideoQuality(sourceVideo, options, logger, false);
+      }
     }
 
     let video = videos[0];
@@ -115,12 +116,12 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
       port: options.port,
     });
     cleanup.add(() => server.close());
-    logger.info(`Servidor local: ${server.url}${videoPath(token, video.extension)}`);
+    logger.info(`Local server: ${server.url}${videoPath(token, video.extension)}`);
 
     let publicUrl: string;
 
     if (options.useTunnel) {
-      logger.info('Starting Cloudflare tunnel...');
+      logger.info('Starting cloudflare tunnel...');
       const binary = await resolveCloudflaredBinary(logger);
       cleanup.add(() => binary.cleanup());
 
@@ -130,7 +131,7 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
         logger,
         onUnexpectedExit: (code) => {
           logger.error(`The Cloudflare tunnel closed unexpectedly (code ${code ?? '?'}).`);
-          logger.error('The public URL is no longer working. Please restart the application to obtain a new one.');
+          logger.error('The public URL is no longer working. Restart the application to obtain a new one.');
           void stop();
         },
       });
@@ -156,19 +157,14 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
     logger.printAlways(publicUrl);
     logger.info('');
 
-    if (options.useTunnel) {
-      logger.warn('All participants must enable Settings > Allow Untrusted URLs in VRChat.');
-      logger.warn('Works in private instances. In public instances, the world must allow the domain.');
-    }
-
     const copied = await copyToClipboard(publicUrl);
     if (copied) {
-      logger.info('URL copied to clipboard.');
+      logger.info('URL copied to clipboard');
     } else {
-      logger.debug('Could not copy to clipboard (no clipboard tool available).');
+      logger.debug('Could not copy to clipboard (no clipboard tool available)');
     }
 
-    logger.info('Press Ctrl+C (or type "q" and Enter) to stop everything.');
+    logger.info('Press Ctrl+C (or type "q" and Enter) to stop everything');
 
     return { publicUrl, stop };
   } catch (error) {
@@ -217,7 +213,7 @@ async function reportVideoQuality(
 
   if (needed <= options.maxUploadMbps) {
     logger.info(
-      `Required upload speed: ~${needed.toFixed(0)} Mbps for ${viewers} spectator(s) (you have ${options.maxUploadMbps} Mbps).`,
+      `Required upload speed: ~${needed.toFixed(0)} Mbps for ${viewers} spectator(s) (you have ${options.maxUploadMbps} Mbps)`,
     );
     return;
   }

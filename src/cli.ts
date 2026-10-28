@@ -165,4 +165,8 @@ main()
       logger.error(`Unexpected error: ${String(error)}`);
     }
     process.exitCode = 1;
+    logger.info('The window closes in 8 seconds. Read the message above before it disappears.');
+    setTimeout(() => {
+      process.exit(1);
+    }, 8000);
   });
