@@ -2,14 +2,14 @@
 
 If you do changes to the code, follow this doc to rebuild.
 
-## Compile Windows binary (using windows)
+### Compile Windows binary (using windows)
 
-npm run setup:cloudflared (in case you need it)
-npm run lint
-npm run typecheck
-npm run build:exe
+- npm run setup:cloudflared (in case you need it)
+- npm run lint
+- npm run typecheck
+- npm run build:exe
 
-## Recompile Linux binary (using windows)
+### Recompile Linux binary (using windows)
 
 This procedure is for rebuilding the Linux executable from Windows using Ubuntu on WSL2.
 It builds in a separate copy to avoid conflicts between Windows and Linux node_modules.
@@ -55,9 +55,9 @@ chmod +x "$WINDOWS_PROJECT/vrchat-local-video-player-linux"
 echo "All done"
 ```
 
-## Compile Linux binary (using linux)
+### Compile Linux binary (using linux)
 
-npm run setup:cloudflared (in case you need it)
-npm run lint
-npm run typecheck
-npm run build:exe:linux
+- npm run setup:cloudflared (in case you need it)
+- npm run lint
+- npm run typecheck
+- npm run build:exe:linux
