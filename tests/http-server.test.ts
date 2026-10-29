@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Logger } from '../src/logger';
 import { startVideoServer, type VideoServer } from '../src/server/http-server';
-import { createToken, videoPath, type VideoSession } from '../src/server/session';
+import { createToken, videoPath, SessionRegistry, type VideoSession } from '../src/server/session';
 
 const PAYLOAD = Buffer.from('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ');
 
@@ -13,6 +13,7 @@ describe('video http server', () => {
   let filePath: string;
   let server: VideoServer;
   let session: VideoSession;
+  let sessions: SessionRegistry;
   let url: string;
 
   beforeAll(async () => {
@@ -30,8 +31,11 @@ describe('video http server', () => {
       mtimeMs: Date.now(),
     };
 
+    sessions = new SessionRegistry();
+    sessions.add(session);
+
     server = await startVideoServer({
-      session,
+      sessions,
       logger: new Logger({ level: 'error' }),
     });
     url = `${server.url}${videoPath(session.token, session.extension)}`;
@@ -99,5 +103,33 @@ describe('video http server', () => {
   it('rejects other HTTP methods', async () => {
     const response = await fetch(url, { method: 'POST' });
     expect(response.status).toBe(405);
+  });
+
+  it('serves several generations at the same time', async () => {
+    const secondPath = path.join(directory, 'second.mp4');
+    const secondPayload = Buffer.from('second-file-payload');
+    await writeFile(secondPath, secondPayload);
+
+    const secondSession: VideoSession = {
+      token: createToken(),
+      filePath: secondPath,
+      fileName: 'second.mp4',
+      extension: '.mp4',
+      mimeType: 'video/mp4',
+      size: secondPayload.length,
+      mtimeMs: Date.now(),
+    };
+    sessions.add(secondSession);
+
+    const secondUrl = `${server.url}${videoPath(secondSession.token, secondSession.extension)}`;
+    const response = await fetch(secondUrl);
+    expect(response.status).toBe(200);
+    const body = Buffer.from(await response.arrayBuffer());
+    expect(body.equals(secondPayload)).toBe(true);
+
+    const firstResponse = await fetch(url);
+    expect(firstResponse.status).toBe(200);
+    const firstBody = Buffer.from(await firstResponse.arrayBuffer());
+    expect(firstBody.equals(PAYLOAD)).toBe(true);
   });
 });

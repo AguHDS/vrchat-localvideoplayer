@@ -4,10 +4,10 @@ import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import type { Logger } from '../logger';
 import { formatContentRange, parseRangeHeader } from './range';
-import { matchesVideoPath, type VideoSession } from './session';
+import { SessionRegistry } from './session';
 
 export interface VideoServerOptions {
-  session: VideoSession;
+  sessions: SessionRegistry;
   logger: Logger;
   host?: string;
   port?: number;
@@ -22,7 +22,7 @@ export interface VideoServer {
 }
 
 export async function startVideoServer(options: VideoServerOptions): Promise<VideoServer> {
-  const { session, logger } = options;
+  const { sessions, logger } = options;
   const host = options.host ?? '127.0.0.1';
   let bytesServed = 0;
 
@@ -38,7 +38,8 @@ export async function startVideoServer(options: VideoServerOptions): Promise<Vid
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const pathname = url.pathname;
 
-    if (!matchesVideoPath(pathname, session.token, session.extension)) {
+    const session = sessions.match(pathname);
+    if (session === null) {
       res.writeHead(404, {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-store',

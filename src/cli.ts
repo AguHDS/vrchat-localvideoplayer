@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { startApp, type RunningApp } from './app';
+import { COMMAND_HELP, parseCommand, type Command as ConsoleCommand } from './commands';
 import { AppError } from './errors';
 import { runWatchdog } from './lifecycle/watchdog';
 import { Logger, type LogLevel } from './logger';
@@ -19,7 +20,7 @@ export function createProgram(): Command {
     .version('1.0.0')
     .option(
       '-f, --file <path>',
-      'Path to a video file. Repeat the option to create a playlist',
+      'Path to a video file; repeat the option to create a playlist',
       collectFile,
       [],
     )
@@ -50,9 +51,8 @@ async function main(): Promise<number> {
   if (watchdogIndex !== -1) {
     const parentPid = Number(process.argv[watchdogIndex + 1]);
     const childPid = Number(process.argv[watchdogIndex + 2]);
-    const cleanupPath = process.argv[watchdogIndex + 3];
     if (Number.isSafeInteger(parentPid) && Number.isSafeInteger(childPid)) {
-      await runWatchdog(parentPid, childPid, cleanupPath);
+      await runWatchdog(parentPid, childPid);
     }
     return 0;
   }
@@ -80,6 +80,8 @@ async function main(): Promise<number> {
   const stopped = new Promise<void>((resolve) => {
     resolveStop = resolve;
   });
+  const pendingCommands: ConsoleCommand[] = [];
+  let running = false;
 
   const requestStop = (): void => {
     if (stopRequested) return;
@@ -92,9 +94,49 @@ async function main(): Promise<number> {
     }
   };
 
+  const runCommand = async (command: ConsoleCommand): Promise<void> => {
+    if (command === 'quit') {
+      requestStop();
+      return;
+    }
+    if (app === null) {
+      pendingCommands.push(command);
+      return;
+    }
+    if (command === 'help') {
+      logger.printAlways(COMMAND_HELP);
+      return;
+    }
+    if (command === 'list') {
+      app.listVideos();
+      return;
+    }
+    if (running) return;
+    running = true;
+    try {
+      await app.addVideos();
+    } finally {
+      running = false;
+    }
+  };
+
+  const dispatch = (line: string): void => {
+    const command = parseCommand(line);
+    if (command === null) {
+      if (line.trim() !== '') {
+        logger.printAlways(`Unknown command "${line.trim()}". Type "h" to see available commands.`);
+      }
+      return;
+    }
+    void runCommand(command);
+  };
+
+  let buffer = '';
   const onData = (chunk: Buffer | string): void => {
-    const text = String(chunk).trim().toLowerCase();
-    if (text === 'q' || text === 'exit' || text === 'salir') requestStop();
+    buffer += String(chunk);
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() ?? '';
+    for (const line of lines) dispatch(line);
   };
 
   process.on('SIGINT', requestStop);
@@ -123,6 +165,14 @@ async function main(): Promise<number> {
     }
 
     if (app === null) return 0;
+
+    logger.printAlways('');
+    logger.printAlways('Type "a" to select a new playlist, "l" to list it, "h" for help, "q" to stop.');
+
+    for (const command of pendingCommands.splice(0)) {
+      await runCommand(command);
+    }
+
     if (stopRequested) {
       await app.stop();
     } else {

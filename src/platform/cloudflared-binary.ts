@@ -84,7 +84,12 @@ async function extractEmbeddedCloudflared(
     temporaryDirectory: directory,
     cleanup: async () => {
       trackedDirectory.cleanupSync();
-      await rm(directory, { recursive: true, force: true }).catch(() => undefined);
+      await rm(directory, {
+        recursive: true,
+        force: true,
+        maxRetries: 20,
+        retryDelay: 250,
+      }).catch(() => undefined);
     },
   };
 }

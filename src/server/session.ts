@@ -38,3 +38,26 @@ export function safeEqual(a: string, b: string): boolean {
   if (bufferA.length !== bufferB.length) return false;
   return timingSafeEqual(bufferA, bufferB);
 }
+
+/**
+ * Keeps every published generation of the served video.
+ * Each generation has its own token, so its URL stays valid while newer ones are added
+ */
+export class SessionRegistry {
+  private readonly sessions: VideoSession[] = [];
+
+  add(session: VideoSession): void {
+    this.sessions.push(session);
+  }
+
+  get count(): number {
+    return this.sessions.length;
+  }
+
+  match(pathname: string): VideoSession | null {
+    for (const session of this.sessions) {
+      if (matchesVideoPath(pathname, session.token, session.extension)) return session;
+    }
+    return null;
+  }
+}

@@ -35,7 +35,7 @@ right-click the file -> **Properties -> Unblock**.
 
 - Private instances only (public instances need the world owner to allow the domain)
 - Quick Tunnels have no uptime guarantee, cloudflare documents them for testing and development, so a session can be interrupted
-- Playlists require FFmpeg and temporarily use disk space while preparing the combined MP4 (releases used space once the app is closed)
+- Playlists require FFmpeg and temporarily use disk space while preparing the combined MP4 (the space is released once the app is closed)
 
 ---
 

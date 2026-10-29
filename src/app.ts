@@ -7,13 +7,12 @@ import { copyToClipboard } from './platform/clipboard';
 import { resolveCloudflaredBinary } from './platform/cloudflared-binary';
 import { selectVideoFiles } from './platform/picker';
 import { startVideoServer } from './server/http-server';
-import { createToken, videoPath, type VideoSession } from './server/session';
+import { SessionRegistry, videoPath } from './server/session';
 import { startCloudflareQuickTunnel } from './tunnel/cloudflare-quick';
 import { formatBytes, formatDuration } from './util/format';
-import { preparePlaylistVideo } from './video/playlist';
+import { PlaylistManager } from './video/playlist-manager';
 import { inspectVideo, isAudioCodecSupported, isVideoCodecSupported } from './video/probe';
-import { validateVideoFiles, type ValidatedVideo } from './video/validate';
-
+import type { ValidatedVideo } from './video/validate';
 export interface AppOptions {
   files: string[];
   usePicker: boolean;
@@ -28,6 +27,8 @@ export interface AppOptions {
 export interface RunningApp {
   publicUrl: string | null;
   stop: () => Promise<void>;
+  addVideos: () => Promise<void>;
+  listVideos: () => void;
 }
 
 export async function startApp(options: AppOptions): Promise<RunningApp | null> {
@@ -53,6 +54,9 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
     }
     logger.printAlways('VRChat Local Video Player');
 
+    const manager = new PlaylistManager({ logger, signal: options.signal });
+    cleanup.add(() => manager.dispose());
+
     let selectedPaths = options.files;
     if (selectedPaths.length === 0) {
       if (!options.usePicker) {
@@ -61,7 +65,7 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
           'Use `--file "C:\\ruta\\video.mp4"` or remove `--no-picker` to open the file picker.',
         );
       }
-      logger.printAlways('Opening file picker...');
+      logger.info('Opening file picker...');
       const selected = await selectVideoFiles(logger);
       if (selected === null) {
         logger.info('Selection cancelled. Nothing to serve.');
@@ -70,27 +74,17 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
       selectedPaths = selected;
     }
 
-    const videos = await validateVideoFiles(selectedPaths);
-    for (const sourceVideo of videos) {
+    const initial = await manager.start(selectedPaths);
+    const video = initial.build.video;
+
+    for (const sourceVideo of initial.added) {
       logger.info(`File: ${sourceVideo.fileName} (${formatBytes(sourceVideo.size)})`);
-      if (videos.length > 1) {
+      if (initial.added.length > 1) {
         await reportVideoQuality(sourceVideo, options, logger, false);
       }
     }
 
-    let video = videos[0];
-    if (video === undefined) {
-      throw new AppError('No video file was selected.');
-    }
-
-    if (videos.length > 1) {
-      const prepared = await preparePlaylistVideo(videos, {
-        logger,
-        signal: options.signal,
-      });
-      cleanup.add(prepared.cleanup);
-      video = prepared.video;
-    } else if (video.fastStart === false) {
+    if (video.fastStart === false) {
       logger.warn(
         'The MP4 does not have "faststart": playback may start slower and seeking may fail.',
         'Use: ffmpeg -i in.mp4 -c copy -movflags +faststart out.mp4',
@@ -99,26 +93,19 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
 
     await reportVideoQuality(video, options, logger, true);
 
-    const token = createToken();
-    const session: VideoSession = {
-      token,
-      filePath: video.filePath,
-      fileName: video.fileName,
-      extension: video.extension,
-      mimeType: video.mimeType,
-      size: video.size,
-      mtimeMs: video.mtimeMs,
-    };
+    const sessions = new SessionRegistry();
+    sessions.add(initial.build.session);
 
     const server = await startVideoServer({
-      session,
+      sessions,
       logger,
       port: options.port,
     });
     cleanup.add(() => server.close());
-    logger.info(`Local server: ${server.url}${videoPath(token, video.extension)}`);
+    logger.info(`Local server: ${server.url}${videoPath(initial.build.session.token, initial.build.session.extension)}`);
 
-    let publicUrl: string;
+    let publicBase = server.url;
+    let publicUrl = '';
 
     if (options.useTunnel) {
       logger.info('Starting cloudflare tunnel...');
@@ -146,40 +133,97 @@ export async function startApp(options: AppOptions): Promise<RunningApp | null> 
         });
       }
 
-      publicUrl = `${tunnel.baseUrl}${videoPath(token, video.extension)}`;
+      publicBase = tunnel.baseUrl;
       logger.info(`Tunnel ready: ${tunnel.baseUrl}`);
-    } else {
-      publicUrl = `${server.url}${videoPath(token, video.extension)}`;
     }
 
-    const cyan = '\x1b[36m';
-    const yellow = '\x1b[33m';
-    const green = '\x1b[32m';
-    const bold = '\x1b[1m';
-    const reset = '\x1b[0m';
+    publicUrl = `${publicBase}${videoPath(initial.build.session.token, initial.build.session.extension)}`;
+    printUrl(publicUrl, logger, 'URL FOR VRCHAT READY');
+    await copyAndReport(publicUrl, logger);
 
-    logger.printAlways('');
-    logger.printAlways(`${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}`);
-    logger.printAlways('');
-    logger.printAlways(`${cyan}${bold}URL FOR VRCHAT READY:${reset}`);
-    logger.printAlways(`${yellow}${bold}${publicUrl}${reset}`);
-    logger.printAlways('');
-    logger.printAlways(`${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}`);
-    logger.printAlways('');
+    let busy = false;
 
-    const copied = await copyToClipboard(publicUrl);
-    if (copied) {
-      logger.printAlways(`${green}URL copied to clipboard${reset}`);
-    } else {
-      logger.debug('Could not copy to clipboard (no clipboard tool available)');
-    }
+    const addVideos = async (): Promise<void> => {
+      if (busy) {
+        logger.warn('Another operation is already running.');
+        return;
+      }
+      if (!options.usePicker) {
+        logger.warn('The file picker is disabled, so no more videos can be added.');
+        return;
+      }
+      busy = true;
+      try {
+        logger.info('Opening file picker to select a new playlist...');
+        const selected = await selectVideoFiles(logger);
+        if (selected === null) {
+          logger.info('Selection cancelled.');
+          return;
+        }
 
-    logger.printAlways('Press Ctrl+C (or type "q" and Enter) to stop everything');
+        const change = await manager.replace(selected);
+        for (const added of change.added) {
+          logger.info(`Selected: ${added.fileName} (${formatBytes(added.size)})`);
+        }
 
-    return { publicUrl, stop };
+        sessions.add(change.build.session);
+        const newUrl = `${publicBase}${videoPath(change.build.session.token, change.build.session.extension)}`;
+        logger.info(`The new playlist has ${manager.sourceCount} video(s).`);
+        await reportVideoQuality(change.build.video, options, logger, true);
+        printUrl(newUrl, logger, 'NEW URL FOR VRCHAT');
+        logger.printAlways('The previous URL keeps working for the viewers that are already connected.');
+        await copyAndReport(newUrl, logger);
+        publicUrl = newUrl;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error(`Could not add the videos: ${message}`);
+        if (error instanceof AppError && error.hint !== undefined) {
+          logger.error(`Help: ${error.hint}`);
+        }
+      } finally {
+        busy = false;
+      }
+    };
+
+    const listVideos = (): void => {
+      logger.info(`Playlist (${manager.sourceCount} video(s)):`);
+      for (const line of manager.list()) {
+        logger.info(`  ${line}`);
+      }
+      logger.info(`Current URL: ${publicUrl}`);
+    };
+
+    return { publicUrl, stop, addVideos, listVideos };
   } catch (error) {
     await cleanup.runAll();
     throw error;
+  }
+}
+
+function printUrl(url: string, logger: Logger, title: string): void {
+  const cyan = '\x1b[36m';
+  const yellow = '\x1b[33m';
+  const bold = '\x1b[1m';
+  const reset = '\x1b[0m';
+
+  logger.printAlways('');
+  logger.printAlways(`${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}`);
+  logger.printAlways('');
+  logger.printAlways(`${cyan}${bold}${title}:${reset}`);
+  logger.printAlways(`${yellow}${bold}${url}${reset}`);
+  logger.printAlways('');
+  logger.printAlways(`${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}`);
+  logger.printAlways('');
+}
+
+async function copyAndReport(url: string, logger: Logger): Promise<void> {
+  const green = '\x1b[32m';
+  const reset = '\x1b[0m';
+  const copied = await copyToClipboard(url);
+  if (copied) {
+    logger.printAlways(`${green}URL copied to clipboard${reset}`);
+  } else {
+    logger.debug('Could not copy to clipboard (no clipboard tool available)');
   }
 }
 

@@ -29,7 +29,7 @@ export function registerTemporaryDirectory(directory: string): TrackedTemporaryD
     cleanupSync: () => {
       trackedDirectories.delete(directory);
       try {
-        rmSync(directory, { recursive: true, force: true });
+        rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
       } catch {
         return;
       }
