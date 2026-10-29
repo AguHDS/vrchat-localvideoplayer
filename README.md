@@ -64,3 +64,4 @@ File size does not matter. Videos are streamed.
 - Temporary files: [Temporary Files Guide](.docs/Temp-data.md)
 - Rebuild binary files: [Binary Files Guide](.docs/Binary-files.md)
 - DNS issues: [DNS Troubleshooting Guide](.docs/DNS-troubleshooting.md)
+- Architecture: [Architecture](.docs/Architecture.md)
