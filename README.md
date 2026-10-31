@@ -16,7 +16,7 @@ When selecting multiple videos, they are processed as a playlist within a single
 
 ## How to use
 
-1. Pick a video, or select several videos to play them consecutively as one playlist (for a playlist, wait while FFmpeg prepares one combined MP4)
+1. Pick a video, or select several videos to play them consecutively as one playlist (for a several videos, wait while FFmpeg prepares a playlist). The order of the playlist is randomized by default.
 2. Wait a few seconds until the public URL for VRChat appears in the console (normally it will be copied to your clipboard)
 3. Put the URL into the right world's video player input
 

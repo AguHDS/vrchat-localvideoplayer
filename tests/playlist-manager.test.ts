@@ -91,6 +91,44 @@ describe('PlaylistManager', () => {
     expect(manager.sourceCount).toBe(1);
   });
 
+  it('randomizes the order of the videos in a playlist', async () => {
+    const first = path.join(directory, 'one.mp4');
+    const second = path.join(directory, 'two.mp4');
+    const third = path.join(directory, 'three.mp4');
+    await writeFile(first, Buffer.alloc(1));
+    await writeFile(second, Buffer.alloc(1));
+    await writeFile(third, Buffer.alloc(1));
+
+    const manager = new PlaylistManager({
+      logger: new Logger({ level: 'error' }),
+      random: () => 0,
+      prepare: async () => ({
+        video: video(path.join(directory, 'playlist.mp4'), 'playlist.mp4'),
+        cleanup: async () => undefined,
+      }),
+    });
+
+    await manager.start([first, second, third]);
+    expect(manager.list().map((line) => line.split(' ')[1])).toEqual([
+      'two.mp4',
+      'three.mp4',
+      'one.mp4',
+    ]);
+  });
+
+  it('keeps the order of a single video', async () => {
+    const only = path.join(directory, 'only.mp4');
+    await writeFile(only, Buffer.alloc(1));
+
+    const manager = new PlaylistManager({
+      logger: new Logger({ level: 'error' }),
+      random: () => 0,
+    });
+
+    await manager.start([only]);
+    expect(manager.list()[0]).toContain('only.mp4');
+  });
+
   it('runs every temporary cleanup on dispose', async () => {
     const first = path.join(directory, 'one.mp4');
     const second = path.join(directory, 'two.mp4');

@@ -1,5 +1,6 @@
 import { createToken, type VideoSession } from '../server/session';
 import type { Logger } from '../logger';
+import { shuffle } from '../util/shuffle';
 import { preparePlaylistVideo, type PreparedPlaylist } from './playlist';
 import { validateVideoFiles, type ValidatedVideo } from './validate';
 
@@ -12,6 +13,7 @@ export interface PlaylistManagerOptions {
   logger: Logger;
   signal?: AbortSignal | undefined;
   prepare?: PlaylistBuilder;
+  random?: () => number;
 }
 
 export interface PlaylistBuild {
@@ -31,11 +33,13 @@ export class PlaylistManager {
   private readonly logger: Logger;
   private readonly signal: AbortSignal | undefined;
   private readonly prepare: PlaylistBuilder;
+  private readonly random: () => number;
 
   constructor(options: PlaylistManagerOptions) {
     this.logger = options.logger;
     this.signal = options.signal;
     this.prepare = options.prepare ?? preparePlaylistVideo;
+    this.random = options.random ?? Math.random;
   }
 
   get sourceCount(): number {
@@ -50,20 +54,35 @@ export class PlaylistManager {
 
   async start(paths: string[]): Promise<PlaylistChange> {
     const videos = await validateVideoFiles(paths);
-    this.sources = videos;
-    return { added: videos, build: await this.build() };
+    this.sources = this.order(videos);
+    const build = await this.build();
+    this.logOrder(videos.length);
+    return { added: this.sources, build };
   }
 
   async replace(paths: string[]): Promise<PlaylistChange> {
     const videos = await validateVideoFiles(paths);
     const previous = this.sources;
-    this.sources = videos;
+    this.sources = this.order(videos);
     try {
-      return { added: videos, build: await this.build() };
+      const build = await this.build();
+      this.logOrder(videos.length);
+      return { added: this.sources, build };
     } catch (error) {
       this.sources = previous;
       throw error;
     }
+  }
+
+  /** Orders the videos in the playlist for randomization purposes */
+  private order(videos: ValidatedVideo[]): ValidatedVideo[] {
+    if (videos.length < 2) return videos;
+    return shuffle(videos, this.random);
+  }
+
+  private logOrder(count: number): void {
+    if (count < 2) return;
+    this.logger.info(`Playlist order randomized (${count} videos).`);
   }
 
   async dispose(): Promise<void> {
