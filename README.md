@@ -11,8 +11,8 @@ When selecting multiple videos, they are processed as a playlist within a single
 
 ## Download
 
-- **Windows:** [`vrchat-local-video-player.exe`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.2.6/vrchat-local-video-player.exe)
-- **Linux:** [`vrchat-local-video-player-linux`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.2.6/vrchat-local-video-player-linux)
+- **Windows:** [`vrchat-local-video-player.exe`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.2.7/vrchat-local-video-player.exe)
+- **Linux:** [`vrchat-local-video-player-linux`](https://github.com/AguHDS/vrchat-localvideoplayer/releases/download/v1.2.7/vrchat-local-video-player-linux)
 
 ## How to use
 
